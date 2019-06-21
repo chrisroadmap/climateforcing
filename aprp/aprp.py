@@ -294,4 +294,7 @@ def create_input(basedir, pertdir, latout=False):
             else:
                 pert[var] = np.append(pert[var], invar, axis=0)
 
-    return base, pert, lat
+    if latout:
+        return base, pert, lat
+    else:
+        return base, pert
