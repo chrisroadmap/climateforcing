@@ -13,7 +13,35 @@ def pla(mu,gamma,alpha):
     return a
 
 
-def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
+def calc_cre(base, pert):
+    """Calculate the cloud radiative effect and approximate split of LW radiation
+    into ERFari and ERFaci.
+
+    Input:
+        base, pert: dicts of CMIP diagnostics required to calculate APRP:
+            'rlut'    : toa outgoing longwave flux
+            'rlutcs'  : toa outgoing longwave flux assuming clear sky
+
+    Output:
+        ERFariLW, ERFaciLW: arrays
+    """
+
+    # check all required diagnostics are present
+    check_vars = ['rlut', 'rlutcs']
+    for var_dict in [base, pert]:
+        for check_var in check_vars:
+            if check_var not in var_dict.keys():
+                raise ValueError('%s not present in %s' % (check_var, var_dict))
+        var_dict['rlut'] = var_dict['rlut']
+        var_dict['rlutcs'] = var_dict['rlutcs']
+
+    ERFLW = -pert['rlut'] - (-base['rlut'])
+    ERFaciLW = ERFLW - (-pert['rlutcs'] - (-base['rlutcs']))
+    ERFariLW = ERFLW - ERFaciLW
+    return ERFariLW, ERFaciLW
+
+
+def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False, lat=None):
     """Calculate fluxes using the Approximate Radiative Perturbation method
     (Taylor et al., 2007, https://journals.ametsoc.org/doi/pdf/10.1175/JCLI4143.1)
   
@@ -28,7 +56,8 @@ def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
             'rsut'    : toa outgoing shortwave flux
             'rsutcs'  : toa outgoing shortwave flux assuming clear sky
     
-    Keyword:
+    Keywords:
+        lw: if True, calculate LW components using cloud radiative effect
         breakdown: if True, provide the forward and reverse calculations of
             APRP in the output, along with the central difference (the mean of
             forward and reverse)
@@ -44,16 +73,24 @@ def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
             dict elements are 't1', 't2', ..., 't9' where t? is the
             corresponding term in A2.
 
-            dict(s) also contain 'ERFari', 'ERFaci' and 'albedo' where
+            dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
 
-            ERFari = t2 + t3 + t5 + t6
-            ERFaci = t7 + t8 + t9
+            ERFariSW = t2 + t3 + t5 + t6
+            ERFaciSW = t7 + t8 + t9
             albedo = t1 + t4
+
+            if lw==True, central also contains 'ERFariLW' and 'ERFaciLW' as
+            calculated from the cloud radiative effect.
     """
 
 
     # check all required diagnostics are present
-    check_vars = ['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs', 'rsut', 'rsutcs']
+    if lw:
+        check_vars = ['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs',
+                      'rsut', 'rsutcs', 'rlut', 'rlutcs']
+    else:
+        check_vars = ['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs',
+                      'rsut', 'rsutcs']
     for var_dict in [base, pert]:
         for check_var in check_vars:
             if check_var not in var_dict.keys():
@@ -216,6 +253,9 @@ def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
     for key in forward.keys():
         central[key] = 0.5 * (forward[key] + reverse[key])
 
+    if lw:
+        central['ERFariLW'], central['ERFaciLW'] = calc_cre(base, pert)
+
     if globalmean:
         # is latitude ascending or descending?
         if lat[0] < lat[-1]:
@@ -224,8 +264,10 @@ def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
         else:
             latbounds = np.concatenate(([90], 0.5*lat[1:]+lat[:-1], [-90]))
             weights = -np.diff(np.sin(np.radians(latbounds)))[None,:,None] * np.ones((base['rsdt'].shape[0], 1, base['rsdt'].shape[2]))
-        for key in forward.keys():
+        for key in central.keys():
             central[key] = np.average(central[key], weights=weights)
+            if key in ['rlut', 'rlutcs']:
+                continue
             forward[key] = np.average(forward[key], weights=weights)
             reverse[key] = np.average(reverse[key], weights=weights)
 
@@ -235,7 +277,7 @@ def calc_aprp(base, pert, breakdown=False, globalmean=False, lat=None):
         return central
 
 
-def create_input(basedir, pertdir, latout=False):
+def create_input(basedir, pertdir, latout=False, lw=False):
     """Utility function to extract variables from a given directory and place
      into dictionaries.
 
@@ -255,17 +297,25 @@ def create_input(basedir, pertdir, latout=False):
 
     Keywords:
         latout: True if lat variable to be included in output.
+        lw: Set to True to do LW calculation using CRE.
 
     Outputs:
-        base: dict of 8 variables needed for APRP from control
-        pert: dict of 8 variables needed for APRP from experiment
+        base: dict of variables needed for APRP from control
+        pert: dict of variables needed for APRP from experiment
         [lat]: latitude points relating to axis 1 of arrays
     """
 
     base = {}
     pert = {}
 
-    for var in ['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs', 'rsut', 'rsutcs']:
+    if lw:
+        varlist=['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs', 'rsut', 
+                 'rsutcs', 'rlut', 'rlutcs']
+    else:
+        varlist=['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs', 'rsut',
+                 'rsutcs']
+
+    for var in varlist:
         filenames = sorted(glob.glob('%s/%s_*.nc' % (basedir, var)))
         if len(filenames)==0:
             raise RuntimeError('No variables of name %s found in directory %s'
