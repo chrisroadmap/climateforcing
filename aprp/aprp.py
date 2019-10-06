@@ -246,8 +246,8 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     forward['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t8'])
     forward['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t9'])
 
-    forward['ERFari'] = forward['t2'] + forward['t3'] + forward['t5'] + forward['t6']
-    forward['ERFaci'] = forward['t7'] + forward['t8'] + forward['t9']
+    forward['ERFariSW'] = forward['t2'] + forward['t3'] + forward['t5'] + forward['t6']
+    forward['ERFaciSW'] = forward['t7'] + forward['t8'] + forward['t9']
     forward['albedo'] = forward['t1'] + forward['t4']
 
     reverse['t1'] = -pert['rsntcs']*(1-clt)*dAcs_daclr
@@ -266,8 +266,8 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     reverse['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t8'])
     reverse['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t9'])
 
-    reverse['ERFari'] = reverse['t2'] + reverse['t3'] + reverse['t5'] + reverse['t6']
-    reverse['ERFaci'] = reverse['t7'] + reverse['t8'] + reverse['t9']
+    reverse['ERFariSW'] = reverse['t2'] + reverse['t3'] + reverse['t5'] + reverse['t6']
+    reverse['ERFaciSW'] = reverse['t7'] + reverse['t8'] + reverse['t9']
     reverse['albedo'] = reverse['t1'] + reverse['t4']
 
     for key in forward.keys():
