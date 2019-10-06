@@ -41,7 +41,8 @@ def calc_cre(base, pert):
     return ERFariLW, ERFaciLW
 
 
-def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False, lat=None):
+def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
+    lat=None, cs_threshold=0.02):
     """Calculate fluxes using the Approximate Radiative Perturbation method
     (Taylor et al., 2007, https://journals.ametsoc.org/doi/pdf/10.1175/JCLI4143.1)
   
@@ -64,6 +65,10 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False, lat=None)
         globalmean: if True, calculate global mean diagnostics (else do
             gridpoint by gridpoint). If globalmean=True, lat must be specified
         lat: latitudes of axis 1. Only required if globalmean=True
+        cs_threshold: minimum cloud fraction (0-1 scale) for calculation of
+            cloudy-sky APRP. If either perturbed or control run clt is below
+            this, set APRP flux to zero. Recommended, as clt appears in
+            denominator. Taken from Zelinka's implementation.
           
     Output:
         central[, forward, reverse]: dict(s) of components of APRP as defined
@@ -233,6 +238,14 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False, lat=None)
     forward['t7'] = -base['rsnt']*clt*(dAoc_dgcld)
     forward['t8'] = -base['rsnt']*clt*(dAoc_dmcld)
     forward['t9'] = -delta_clt * (rsutoc - rsutcs)
+    
+    # set thresholds
+    # TODO: can we avoid a hard cloud fraction threshold here?
+    forward['t5'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t5'])
+    forward['t7'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t7'])
+    forward['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t8'])
+    forward['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t9'])
+
     forward['ERFari'] = forward['t2'] + forward['t3'] + forward['t5'] + forward['t6']
     forward['ERFaci'] = forward['t7'] + forward['t8'] + forward['t9']
     forward['albedo'] = forward['t1'] + forward['t4']
@@ -246,6 +259,13 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False, lat=None)
     reverse['t7'] = -pert['rsnt']*clt*(dAoc_dgcld)
     reverse['t8'] = -pert['rsnt']*clt*(dAoc_dmcld)
     reverse['t9'] = -delta_clt * (rsutoc - rsutcs)
+
+    # set thresholds
+    reverse['t5'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t5'])
+    reverse['t7'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t7'])
+    reverse['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t8'])
+    reverse['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t9'])
+
     reverse['ERFari'] = reverse['t2'] + reverse['t3'] + reverse['t5'] + reverse['t6']
     reverse['ERFaci'] = reverse['t7'] + reverse['t8'] + reverse['t9']
     reverse['albedo'] = reverse['t1'] + reverse['t4']
