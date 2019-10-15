@@ -241,7 +241,9 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     
     # set thresholds
     # TODO: can we avoid a hard cloud fraction threshold here?
+    forward['t4'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t4'])
     forward['t5'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t5'])
+    forward['t6'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t6'])
     forward['t7'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t7'])
     forward['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t8'])
     forward['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t9'])
@@ -261,7 +263,9 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     reverse['t9'] = -delta_clt * (rsutoc - rsutcs)
 
     # set thresholds
+    reverse['t4'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t4'])
     reverse['t5'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t5'])
+    reverse['t6'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t6'])
     reverse['t7'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t7'])
     reverse['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t8'])
     reverse['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t9'])
