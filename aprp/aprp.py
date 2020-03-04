@@ -238,6 +238,8 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     forward['t7'] = -base['rsnt']*clt*(dAoc_dgcld)
     forward['t8'] = -base['rsnt']*clt*(dAoc_dmcld)
     forward['t9'] = -delta_clt * (rsutoc - rsutcs)
+    forward['t2_clr'] = -base['rsntcs']*dAcs_dgaer
+    forward['t3_clr'] = -base['rsntcs']*dAcs_dmaer
     
     # set thresholds
     # TODO: can we avoid a hard cloud fraction threshold here?
@@ -248,6 +250,7 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     forward['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t8'])
     forward['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., forward['t9'])
 
+    forward['ERFariSWclr'] = forward['t2_clr'] + forward['t3_clr']
     forward['ERFariSW'] = forward['t2'] + forward['t3'] + forward['t5'] + forward['t6']
     forward['ERFaciSW'] = forward['t7'] + forward['t8'] + forward['t9']
     forward['albedo'] = forward['t1'] + forward['t4']
@@ -261,6 +264,8 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     reverse['t7'] = -pert['rsnt']*clt*(dAoc_dgcld)
     reverse['t8'] = -pert['rsnt']*clt*(dAoc_dmcld)
     reverse['t9'] = -delta_clt * (rsutoc - rsutcs)
+    reverse['t2_clr'] = -pert['rsntcs']*dAcs_dgaer
+    reverse['t3_clr'] = -pert['rsntcs']*dAcs_dmaer
 
     # set thresholds
     reverse['t4'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t4'])
@@ -270,6 +275,7 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
     reverse['t8'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t8'])
     reverse['t9'] = np.where(np.logical_or(base['clt']<cs_threshold, pert['clt']<cs_threshold), 0., reverse['t9'])
 
+    reverse['ERFariSWclr'] = reverse['t2_clr'] + reverse['t3_clr']
     reverse['ERFariSW'] = reverse['t2'] + reverse['t3'] + reverse['t5'] + reverse['t6']
     reverse['ERFaciSW'] = reverse['t7'] + reverse['t8'] + reverse['t9']
     reverse['albedo'] = reverse['t1'] + reverse['t4']
@@ -301,7 +307,8 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
         return central
 
 
-def create_input(basedir, pertdir, latout=False, lw=False):
+def create_input(basedir, pertdir, latout=False, lw=False, 
+    sl=slice(0,None,None)):
     """Utility function to extract variables from a given directory and place
      into dictionaries.
 
@@ -322,6 +329,7 @@ def create_input(basedir, pertdir, latout=False, lw=False):
     Keywords:
         latout: True if lat variable to be included in output.
         lw: Set to True to do LW calculation using CRE.
+        sl: slice of indices to use from each dataset.
 
     Outputs:
         base: dict of variables needed for APRP from control
@@ -346,7 +354,7 @@ def create_input(basedir, pertdir, latout=False, lw=False):
                 % (var, basedir))
         for i, filename in enumerate(filenames):
             nc = Dataset(filename)
-            invar = nc.variables[var][:]
+            invar = nc.variables[var][sl,...]
             lat = nc.variables['lat'][:]
             nc.close()
             if i==0:
@@ -360,7 +368,7 @@ def create_input(basedir, pertdir, latout=False, lw=False):
                 % (var, pertdir))
         for i, filename in enumerate(filenames):
             nc = Dataset(filename)
-            invar = nc.variables[var][:]
+            invar = nc.variables[var][sl,...]
             lat = nc.variables['lat'][:]
             nc.close()
             if i==0:
