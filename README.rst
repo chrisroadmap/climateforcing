@@ -14,11 +14,14 @@ Coming soon
 development version
 -------------------
 
-Clone the repository and run
+I strongly recommend doing this inside a virtual environment, e.g. conda, to keep your base python installation clean.
+
+Clone the repository, ``cd`` to ``climateforcing`` and run
+
+.. code-block::
 
     pip install -e .[dev]
 
-I recommend doing this inside a virtual environment, e.g. conda.
 
 Contents
 ========
