@@ -16,7 +16,7 @@ development version
 
 Clone the repository and run
 
-`pip install -e .[dev]`
+    pip install -e .[dev]
 
 I recommend doing this inside a virtual environment, e.g. conda.
 
@@ -25,7 +25,8 @@ Contents
 
 aprp: Approximate Partial Radiative Perturbation
 ------------------------------------------------
-Generates the components of shortwave effective radiative forcing from changes in absorption, scattering and cloud amount. Citations:
+Generates the components of shortwave effective radiative forcing (ERF) from changes in absorption, scattering and cloud amount. For aerosols, this can be used to approximate the ERF from aerosol-radiation interactions (ERFari) and aerosol-cloud interactions (ERFaci). Citations:
+
 - Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying components of aerosol‐cloud‐radiation interactions in climate models, J. Geophys. Res. Atmos., 119, 7599– 7615, https://doi.org/10.1002/2014JD021710.
 - Taylor, K. E., Crucifix, M., Braconnot, P., Hewitt, C. D., Doutriaux, C., Broccoli, A. J., Mitchell, J. F. B., & Webb, M. J. (2007). Estimating Shortwave Radiative Forcing and Response in Climate Models, Journal of Climate, 20(11), 2530-2543, https://doi.org/10.1175/JCLI4143.1
 
