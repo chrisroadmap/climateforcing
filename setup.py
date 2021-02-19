@@ -18,6 +18,7 @@ SOURCE_DIR = "src"
 
 REQUIREMENTS = [
     "numpy",
+    "netcdf4"
 ]
 REQUIREMENTS_TESTS = [
     "codecov",

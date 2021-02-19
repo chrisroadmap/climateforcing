@@ -1,11 +1,12 @@
-from __future__ import division
-
 import glob
 import numpy as np
 import warnings
 from netCDF4 import Dataset
 
-def pla(mu,gamma,alpha):
+# TODO: allow scalar and non-3D arrays in the input
+# TODO: docstrings for non-APRP function
+
+def _pla(mu,gamma,alpha):
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         a = mu * gamma + (mu*alpha*(1-gamma)**2)/(1-alpha*gamma)
@@ -13,7 +14,7 @@ def pla(mu,gamma,alpha):
     return a
 
 
-def calc_cre(base, pert):
+def cloud_radiative_effect(base, pert):
     """Calculate the cloud radiative effect and approximate split of LW radiation
     into ERFari and ERFaci.
 
@@ -41,54 +42,96 @@ def calc_cre(base, pert):
     return ERFariLW, ERFaciLW
 
 
-def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
-    lat=None, cs_threshold=0.02):
-    """Calculate fluxes using the Approximate Radiative Perturbation method
-    (Taylor et al., 2007, https://journals.ametsoc.org/doi/pdf/10.1175/JCLI4143.1)
-  
+def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
+    lat=None, cs_threshold=0.02, clt_percent=False):
+    """
+    Approximate Partial Raditive Perturbation calculation
+
+    This calculates the breakdown of shortwave radiative forcing into absorption
+    and scattering components. When used with aerosol forcing, it can be used to
+    separate the effective radiative forcing into aerosol-radiation (ERFari) and
+    aerosol-cloud (ERFaci) components.
+
+    References:
+    -----------
+
+    Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying 
+    components of aerosol‐cloud‐radiation interactions in climate models, J. Geophys.
+    Res. Atmos., 119, 7599– 7615, https://doi.org/10.1002/2014JD021710.
+
+    Taylor, K. E., Crucifix, M., Braconnot, P., Hewitt, C. D., Doutriaux, C., Broccoli,
+    A. J., Mitchell, J. F. B., & Webb, M. J. (2007). Estimating Shortwave Radiative
+    Forcing and Response in Climate Models, Journal of Climate, 20(11), 2530-2543,
+    https://doi.org/10.1175/JCLI4143.1
+
+    This implementation is a little different to Mark Zelinka's version at
+    https://github.com/mzelinka/aprp.
+
     Input:
-        base, pert: dicts of CMIP diagnostics required to calculate APRP:
-            'rsdt'    : toa incoming shortwave flux
-            'rsus'    : surface upwelling shortwave flux
-            'rsds'    : surface downwelling_shortwave flux
-            'clt'     : cloud area_fraction
-            'rsdscs'  : surface downwelling shortwave flux assuming clear sky
-            'rsuscs'  : surface upwelling shortwave flux assuming clear sky
-            'rsut'    : toa outgoing shortwave flux
-            'rsutcs'  : toa outgoing shortwave flux assuming clear sky
-    
-    Keywords:
-        lw: if True, calculate LW components using cloud radiative effect
-        breakdown: if True, provide the forward and reverse calculations of
-            APRP in the output, along with the central difference (the mean of
-            forward and reverse)
-        globalmean: if True, calculate global mean diagnostics (else do
-            gridpoint by gridpoint). If globalmean=True, lat must be specified
-        lat: latitudes of axis 1. Only required if globalmean=True
-        cs_threshold: minimum cloud fraction (0-1 scale) for calculation of
-            cloudy-sky APRP. If either perturbed or control run clt is below
-            this, set APRP flux to zero. Recommended, as clt appears in
-            denominator. Taken from Zelinka's implementation.
+        base : dict
+            baseline climate to use
+        pert : dict
+            perturbed climate to use
+        lw : bool
+            calculate the longwave forcing, in addition to the shortwave.
+        breakdown : bool
+            provide the forward and reverse calculations of APRP in the output, along
+            with the central difference (the mean of forward and reverse)
+        globalmean : bool
+            provide global mean outputs (requires valid value for `lat`)
+        lat : None or `numpy.ndarray`
+            latitudes corresponding to axis numbered 1. Only required if globalmean
+            is True.
+        cs_threshold : float
+            minimum cloud fraction (0-1 scale) for calculation of cloudy-sky APRP. If
+            either perturbed or control run cloud fraction is below this, set the APRP
+            flux to zero. It is recommended to use a small positive value, as the
+            cloud fraction appears in the denominator of the calculation. Taken from 
+            Mark Zelinka's implementation.
+        clt_percent : bool
+            express cloud fraction in percent (True) or 0-1 scale (False)
+
+    Both `base` and `pert` are `dict`s containing CMIP-style variables. They should be
+    3-dimensional arrays in (time, latitude, longitude) format. The following items are
+    required. CMIP variable naming conventions are used.
+
+        rsdt    : TOA incoming shortwave flux (W m-2)
+        rsus    : surface upwelling shortwave flux (W m-2)
+        rsds    : surface downwelling_shortwave flux (W m-2)
+        clt     : cloud area_fraction (fraction or %, see `clt_unit`)
+        rsdscs  : surface downwelling shortwave flux assuming clear sky (W m-2)
+        rsuscs  : surface upwelling shortwave flux assuming clear sky (W m-2)
+        rsut    : TOA outgoing shortwave flux (W m-2)
+        rsutcs  : TOA outgoing shortwave flux assuming clear sky (W m-2)
+
+    If the longwave calculation is also required, the following should also be included
+
+        rlut    : TOA outgoing longwave flux (W m-2)
+        rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
           
-    Output:
-        central[, forward, reverse]: dict(s) of components of APRP as defined
-            by equation A2 of Zelinka et al., 2014
-            https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1002/2014JD021710
+    Returns:
+        central[, forward, reverse] : dict(s)
+            Components of APRP as defined by equation A2 of Zelinka et al., 2014
 
             dict elements are 't1', 't2', ..., 't9' where t? is the
             corresponding term in A2.
 
-            dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
+            't2_clr' and 't3_clr' are also provided, being hypothetical clear sky
+            values of t2 and t3.
+
+            Result dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
 
             ERFariSW = t2 + t3 + t5 + t6
             ERFaciSW = t7 + t8 + t9
             albedo = t1 + t4
+            ERFari_SWclr = t2_clr + t3_clr
+
+            though note these only make sense if you are calculating aerosol forcing.
+            The cloud fraction adjustment component of ERFaci is in t9.
 
             if lw==True, central also contains 'ERFariLW' and 'ERFaciLW' as
             calculated from the cloud radiative effect.
     """
-
-
     # check all required diagnostics are present
     if lw:
         check_vars = ['rsdt', 'rsus', 'rsds', 'clt', 'rsdscs', 'rsuscs',
@@ -107,17 +150,23 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
             if var_dict[check_var].shape != var_dict['rsdt'].shape:
                 raise ValueError('%s %s in %s differs in shape to rsdt %s' %
                     (check_var, var_dict[check_var].shape, var_dict, var_dict['rsdt'].shape))
-        # rescale cloud fraction to 0-1
-        var_dict['clt'] = var_dict['clt']/100.
+
+        # rescale cloud fraction to 0-1 if necessary
+        if clt_unit=='%':
+            var_dict['clt'] = var_dict['clt']/100
+        elif clt_unit!='1':
+            warnings.warn('unknown value of `clt_unit` provided: assuming 0-1 scale')
 
     # require lat for globalmean
     if globalmean:
         if lat is None:
-            raise ValueError('lat must be specified for global mean calculation')
+            raise ValueError('`lat` must be specified for `globalmean=True`')
         elif len(lat) != base['rsdt'].shape[1]:
-            raise ValueError('lat must be the same length as axis 1 of input variables')
+            raise ValueError('`lat` must be the same length as axis 1 of input
+                variables')
 
     # the catch_warnings stops divide by zeros being flagged
+    # we might want to flag these after all and give user the option to disable
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         base['rsutoc'] = (base['rsut'] - (1 - base['clt'])*(base['rsutcs']))/base['clt']
@@ -203,17 +252,17 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
         mu_base = (mu_oc_base)/mu_cs_base
         mu_base[~np.isfinite(mu_base)] = 0.
       
-    dAoc_dacld = 0.5 * ( (pla(mu_oc_base,gamma_oc_base,alpha_oc_pert)-pla(mu_oc_base,gamma_oc_base,alpha_oc_base)) + (pla(mu_oc_pert,gamma_oc_pert,alpha_oc_pert) - (pla(mu_oc_pert,gamma_oc_pert,alpha_oc_base))) )
-    dAoc_dmcld = 0.5 * ( (pla(mu_pert,gamma_base,alpha_oc_base)-pla(mu_base,gamma_base,alpha_oc_base)) + (pla(mu_pert,gamma_pert,alpha_oc_pert) - (pla(mu_base,gamma_pert,alpha_oc_pert))) )
-    dAoc_dgcld = 0.5 * ( (pla(mu_base,gamma_pert,alpha_oc_base)-pla(mu_base,gamma_base,alpha_oc_base)) + (pla(mu_pert,gamma_pert,alpha_oc_pert) - (pla(mu_pert,gamma_base,alpha_oc_pert))) )
+    dAoc_dacld = 0.5 * ( (_pla(mu_oc_base,gamma_oc_base,alpha_oc_pert)-_pla(mu_oc_base,gamma_oc_base,alpha_oc_base)) + (_pla(mu_oc_pert,gamma_oc_pert,alpha_oc_pert) - (_pla(mu_oc_pert,gamma_oc_pert,alpha_oc_base))) )
+    dAoc_dmcld = 0.5 * ( (_pla(mu_pert,gamma_base,alpha_oc_base)-_pla(mu_base,gamma_base,alpha_oc_base)) + (_pla(mu_pert,gamma_pert,alpha_oc_pert) - (_pla(mu_base,gamma_pert,alpha_oc_pert))) )
+    dAoc_dgcld = 0.5 * ( (_pla(mu_base,gamma_pert,alpha_oc_base)-_pla(mu_base,gamma_base,alpha_oc_base)) + (_pla(mu_pert,gamma_pert,alpha_oc_pert) - (_pla(mu_pert,gamma_base,alpha_oc_pert))) )
 
-    dAoc_daaer = 0.5 * ( (pla(mu_oc_base,gamma_oc_base,alpha_cs_pert)-pla(mu_oc_base,gamma_oc_base,alpha_cs_base)) + (pla(mu_oc_pert,gamma_oc_pert,alpha_cs_pert) - (pla(mu_oc_pert,gamma_oc_pert,alpha_cs_base))) )
-    dAoc_dmaer = 0.5 * ( (pla(mu_cs_pert,gamma_oc_base,alpha_oc_base)-pla(mu_cs_base,gamma_oc_base,alpha_oc_base)) + (pla(mu_cs_pert,gamma_oc_pert,alpha_oc_pert) - (pla(mu_cs_base,gamma_oc_pert,alpha_oc_pert))) )
-    dAoc_dgaer = 0.5 * ( (pla(mu_oc_base,gamma_cs_pert,alpha_oc_base)-pla(mu_oc_base,gamma_cs_base,alpha_oc_base)) + (pla(mu_oc_pert,gamma_cs_pert,alpha_oc_pert) - (pla(mu_oc_pert,gamma_cs_base,alpha_oc_pert))) )
+    dAoc_daaer = 0.5 * ( (_pla(mu_oc_base,gamma_oc_base,alpha_cs_pert)-_pla(mu_oc_base,gamma_oc_base,alpha_cs_base)) + (_pla(mu_oc_pert,gamma_oc_pert,alpha_cs_pert) - (_pla(mu_oc_pert,gamma_oc_pert,alpha_cs_base))) )
+    dAoc_dmaer = 0.5 * ( (_pla(mu_cs_pert,gamma_oc_base,alpha_oc_base)-_pla(mu_cs_base,gamma_oc_base,alpha_oc_base)) + (_pla(mu_cs_pert,gamma_oc_pert,alpha_oc_pert) - (_pla(mu_cs_base,gamma_oc_pert,alpha_oc_pert))) )
+    dAoc_dgaer = 0.5 * ( (_pla(mu_oc_base,gamma_cs_pert,alpha_oc_base)-_pla(mu_oc_base,gamma_cs_base,alpha_oc_base)) + (_pla(mu_oc_pert,gamma_cs_pert,alpha_oc_pert) - (_pla(mu_oc_pert,gamma_cs_base,alpha_oc_pert))) )
 
-    dAcs_daclr = 0.5 * ( (pla(mu_cs_base,gamma_cs_base,alpha_cs_pert)-pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (pla(mu_cs_pert,gamma_cs_pert,alpha_cs_base))) )
-    dAcs_dmaer = 0.5 * ( (pla(mu_cs_pert,gamma_cs_base,alpha_cs_base)-pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (pla(mu_cs_base,gamma_cs_pert,alpha_cs_pert))) )
-    dAcs_dgaer = 0.5 * ( (pla(mu_cs_base,gamma_cs_pert,alpha_cs_base)-pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (pla(mu_cs_pert,gamma_cs_base,alpha_cs_pert))) )
+    dAcs_daclr = 0.5 * ( (_pla(mu_cs_base,gamma_cs_base,alpha_cs_pert)-_pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (_pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (_pla(mu_cs_pert,gamma_cs_pert,alpha_cs_base))) )
+    dAcs_dmaer = 0.5 * ( (_pla(mu_cs_pert,gamma_cs_base,alpha_cs_base)-_pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (_pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (_pla(mu_cs_base,gamma_cs_pert,alpha_cs_pert))) )
+    dAcs_dgaer = 0.5 * ( (_pla(mu_cs_base,gamma_cs_pert,alpha_cs_base)-_pla(mu_cs_base,gamma_cs_base,alpha_cs_base)) + (_pla(mu_cs_pert,gamma_cs_pert,alpha_cs_pert) - (_pla(mu_cs_pert,gamma_cs_base,alpha_cs_pert))) )
 
     base['rsnt'] = base['rsdt']-base['rsut']
     base['rsntcs'] = base['rsdt']-base['rsutcs']
@@ -284,7 +333,7 @@ def calc_aprp(base, pert, lw=False, breakdown=False, globalmean=False,
         central[key] = 0.5 * (forward[key] + reverse[key])
 
     if lw:
-        central['ERFariLW'], central['ERFaciLW'] = calc_cre(base, pert)
+        central['ERFariLW'], central['ERFaciLW'] = cloud_radiative_effect(base, pert)
 
     if globalmean:
         # is latitude ascending or descending?
@@ -325,8 +374,6 @@ def create_input(basedir, pertdir, latout=False, lw=False,
     Inputs:
         basedir: directory containing control variables
         pertdir: directory containing forcing perturbed variables
-
-    Keywords:
         latout: True if lat variable to be included in output.
         lw: Set to True to do LW calculation using CRE.
         sl: slice of indices to use from each dataset.
