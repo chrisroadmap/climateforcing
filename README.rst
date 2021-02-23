@@ -9,7 +9,9 @@ Installation
 pypi
 ----
 
-Coming soon
+.. code-block::
+
+    pip install climateforcing
 
 development version
 -------------------
