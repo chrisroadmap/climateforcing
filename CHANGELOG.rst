@@ -13,6 +13,10 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 master
 ------
 
+v0.0.2
+------
+- fixed: incorrect dependency for `netCDF4` in `setup.py`
+
 v0.0.1
 ------
 - added: `readme-renderer` in `setup.py` to check that readme file is correctly deployed on PyPI 
