@@ -57,10 +57,6 @@ PACKAGE_DATA = {"openscm_runner": [os.path.join("adapters", "fair_adapter", "*.c
 with open("README.rst", "r") as fh:
     long_description = fh.read()
 
-if len(README_LINES) < 3:
-    raise RuntimeError("Insufficient description given")
-
-
 setup(
     name=PACKAGE_NAME,
     version=versioneer.get_version(),
