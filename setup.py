@@ -54,16 +54,8 @@ PACKAGE_DIR = {"": SOURCE_DIR}
 PACKAGE_DATA = {"openscm_runner": [os.path.join("adapters", "fair_adapter", "*.csv")]}
 
 # Get the long description from the README file
-with open(README, "r") as f:
-    README_LINES = ["climateforcing", "==============", ""]
-    add_line = False
-    for line in f:
-        if line.strip() == ".. sec-begin-long-description":
-            add_line = True
-        elif line.strip() == ".. sec-end-long-description":
-            break
-        elif add_line:
-            README_LINES.append(line.strip())
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 if len(README_LINES) < 3:
     raise RuntimeError("Insufficient description given")
@@ -73,7 +65,7 @@ setup(
     name=PACKAGE_NAME,
     version=versioneer.get_version(),
     description=DESCRIPTION,
-    long_description="\n".join(README_LINES),
+    long_description=long_description,
     long_description_content_type="text/x-rst",
     author=", ".join([author[0] for author in AUTHORS]),
     author_email=", ".join([author[1] for author in AUTHORS]),

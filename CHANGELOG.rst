@@ -10,9 +10,13 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 - ``Fixed`` for any bug fixes.
 - ``Security`` in case of vulnerabilities.
 
-v0.0.0
-------
-- added UTCI
-
 master
 ------
+
+v0.0.1
+------
+- added: `readme-renderer` in `setup.py` to check that readme file is correctly deployed on PyPI 
+
+v0.0.0
+------
+- added: UTCI
