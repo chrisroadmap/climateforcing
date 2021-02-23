@@ -43,7 +43,7 @@ def cloud_radiative_effect(base, pert):
 
 
 def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
-    lat=None, cs_threshold=0.02, clt_percent=False):
+    lat=None, cs_threshold=0.02, clt_percent=True):
     """
     Approximate Partial Raditive Perturbation calculation
 
@@ -89,7 +89,8 @@ def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
             cloud fraction appears in the denominator of the calculation. Taken from 
             Mark Zelinka's implementation.
         clt_percent : bool
-            express cloud fraction in percent (True) or 0-1 scale (False)
+            is cloud fraction from base and pert in percent (True) or 0-1 scale
+            (False)
 
     Both `base` and `pert` are `dict`s containing CMIP-style variables. They should be
     3-dimensional arrays in (time, latitude, longitude) format. The following items are
@@ -152,18 +153,15 @@ def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
                     (check_var, var_dict[check_var].shape, var_dict, var_dict['rsdt'].shape))
 
         # rescale cloud fraction to 0-1 if necessary
-        if clt_unit=='%':
+        if clt_percent:
             var_dict['clt'] = var_dict['clt']/100
-        elif clt_unit!='1':
-            warnings.warn('unknown value of `clt_unit` provided: assuming 0-1 scale')
 
     # require lat for globalmean
     if globalmean:
         if lat is None:
             raise ValueError('`lat` must be specified for `globalmean=True`')
         elif len(lat) != base['rsdt'].shape[1]:
-            raise ValueError('`lat` must be the same length as axis 1 of input
-                variables')
+            raise ValueError('`lat` must be the same length as axis 1 of input variables')
 
     # the catch_warnings stops divide by zeros being flagged
     # we might want to flag these after all and give user the option to disable
@@ -334,6 +332,10 @@ def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
 
     if lw:
         central['ERFariLW'], central['ERFaciLW'] = cloud_radiative_effect(base, pert)
+        forward['ERFariLW'] = np.copy(central['ERFariLW'])
+        reverse['ERFariLW'] = np.copy(central['ERFariLW'])
+        forward['ERFaciLW'] = np.copy(central['ERFaciLW'])
+        reverse['ERFaciLW'] = np.copy(central['ERFaciLW'])
 
     if globalmean:
         # is latitude ascending or descending?
@@ -345,8 +347,6 @@ def aprp(base, pert, lw=False, breakdown=False, globalmean=False,
             weights = -np.diff(np.sin(np.radians(latbounds)))[None,:,None] * np.ones((base['rsdt'].shape[0], 1, base['rsdt'].shape[2]))
         for key in central.keys():
             central[key] = np.average(central[key], weights=weights)
-            if key in ['rlut', 'rlutcs']:
-                continue
             forward[key] = np.average(forward[key], weights=weights)
             reverse[key] = np.average(reverse[key], weights=weights)
 

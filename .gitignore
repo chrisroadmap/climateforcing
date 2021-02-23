@@ -1,4 +1,12 @@
+# python complied source
 *.pyc
-*.swp
-*.egg-info
 __pycache__
+
+# vim temp files
+*.swp
+
+# package
+*.egg-info
+
+# Unit test / coverage reports
+.coverage

@@ -1,0 +1,8 @@
+[run]
+branch = True
+source = climateforcing
+omit = *_version.py
+
+[report]
+fail_under = 95
+ignore_errors = True
