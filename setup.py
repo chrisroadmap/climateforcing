@@ -54,7 +54,7 @@ PACKAGE_DIR = {"": SOURCE_DIR}
 PACKAGE_DATA = {"openscm_runner": [os.path.join("adapters", "fair_adapter", "*.csv")]}
 
 # Get the long description from the README file
-with open("README.md", "r") as fh:
+with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 if len(README_LINES) < 3:
