@@ -36,6 +36,7 @@ REQUIREMENTS_DEV = [
         "isort>5",
         "pydocstyle",
         "pylint>=2.4.4",
+        "readme-renderer",
     ],
     *REQUIREMENTS_DEPLOY,
     *REQUIREMENTS_TESTS,

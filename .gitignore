@@ -6,6 +6,8 @@ __pycache__
 *.swp
 
 # package
+build/
+dist/
 *.egg-info
 
 # Unit test / coverage reports
