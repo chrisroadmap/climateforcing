@@ -1,3 +1,8 @@
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4621058.svg
+   :target: https://doi.org/10.5281/zenodo.4621058
+.. image:: https://badge.fury.io/py/climateforcing.svg
+    :target: https://badge.fury.io/py/climateforcing
+
 Climate forcing
 ===============
 
