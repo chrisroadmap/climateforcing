@@ -44,6 +44,9 @@ black: $(VENV_DIR)  ## apply black formatter to source and tests
 isort: $(VENV_DIR)  ## format the code
 	$(VENV_DIR)/bin/isort src tests setup.py; 
 
+pylint: $(VENV_DIR)  ## apply linter
+	$(VENV_DIR)/bin/pylint src;
+
 docs: $(VENV_DIR)  ## build the docs
 	$(VENV_DIR)/bin/sphinx-build -M html docs/source docs/build
 

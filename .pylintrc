@@ -1,0 +1,15 @@
+[MASTER]
+ignore=_version.py
+
+[MESSAGES CONTROL]
+disable=
+    # handled by black
+    format,
+    import-error,
+    fixme
+
+[SIMILARITIES]
+min-similarity-lines=7
+ignore-comments=no
+ignore-docstrings=yes
+ignore-imports=yes
