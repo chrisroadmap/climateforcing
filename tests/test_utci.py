@@ -35,10 +35,14 @@ def test_mrt_scalar():
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
     assert isinstance(TEST_RESULT, numbers.Number)
 
-# TODO: array integration test
-def test_integration():
+def test_integration_array():
+    EXPECTED_RESULT = np.array([22.33807826, 18.04481664])
+    mrt = mean_radiant_temperature(np.array([150,50]), np.array([350,150]), np.array([400,200]), np.array([100,50]), np.array([700,400]), cos_zenith=np.array([0.5,0.2]))
+    TEST_RESULT = utci(np.array([295,296], dtype=float), mrt, np.array([6.0,6.0], dtype=float), np.array([100,100], dtype=float))
+    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
+
+def test_integration_scalar():
     EXPECTED_RESULT = 22.33807826100249
     mrt = mean_radiant_temperature(150, 350, 400, 100, 700, cos_zenith=0.5)
     TEST_RESULT = utci(295, mrt, 6, 100)
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
-
