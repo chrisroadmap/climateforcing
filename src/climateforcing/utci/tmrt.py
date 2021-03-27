@@ -10,7 +10,6 @@ import numpy as np
 from ..constants import STEFAN_BOLTZMANN
 
 
-# TODO: can these inputs be arrays?
 def mean_radiant_temperature(
     rlds, 
     rlus, 
