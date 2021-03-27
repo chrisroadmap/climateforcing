@@ -11,10 +11,10 @@ from ..constants import STEFAN_BOLTZMANN
 
 
 def mean_radiant_temperature(
-    rlds, 
-    rlus, 
-    rsdsdiff, 
-    rsus, 
+    rlds,
+    rlus,
+    rsdsdiff,
+    rsus,
     rsds,
     angle_factor_down=0.5,
     angle_factor_up=0.5,
@@ -22,7 +22,7 @@ def mean_radiant_temperature(
     emissivity=0.97,
     direct_exposed=None,
     cos_zenith=1,
-    lit=1
+    lit=1,
 ):
     """
     Inputs:
@@ -56,7 +56,7 @@ def mean_radiant_temperature(
     Returns:
         mean_radiant_temperature, Kelvin
     """
-    
+
     # check if the input is scalar or array
     rlds = np.asarray(rlds)
     rlus = np.asarray(rlus)
@@ -65,43 +65,53 @@ def mean_radiant_temperature(
     rsds = np.asarray(rsds)
     cos_zenith = np.asarray(cos_zenith)
     lit = np.asarray(lit)
-    
+
     # > 0: one or more of the inputs are array so return array
     array_input = (
-        rsds.ndim +
-        rlus.ndim +
-        rsdsdiff.ndim +
-        rsus.ndim +
-        rsds.ndim +
-        cos_zenith.ndim +
-        lit.ndim
+        rsds.ndim
+        + rlus.ndim
+        + rsdsdiff.ndim
+        + rsus.ndim
+        + rsds.ndim
+        + cos_zenith.ndim
+        + lit.ndim
     )
-    
+
     # Calculate the direct normal radiation
     rsdsdirh = rsds - rsdsdiff
     if rsdsdirh.ndim == 0:
         rsdsdirh = rsdsdirh[np.newaxis]
     if cos_zenith.ndim == 0:
         cos_zenith = cos_zenith[np.newaxis]
-#    if lit.ndim == 0:
-#        lit = lit[np.newaxis]
-    night = cos_zenith<=0
+    #    if lit.ndim == 0:
+    #        lit = lit[np.newaxis]
+    night = cos_zenith <= 0
     rsdsdirh[night] = 0
     rsdsdir = np.zeros_like(cos_zenith)
-    rsdsdir[~night] = rsdsdirh[~night]/cos_zenith[~night] * lit#[~night]
+    rsdsdir[~night] = rsdsdirh[~night] / cos_zenith[~night] * lit  # [~night]
 
     # calculate the direct exposed fraction if it is not given
     # no additional correction for lit fraction as it appears in rsdsdir
     if direct_exposed is None:
         zenith = np.degrees(np.arccos(cos_zenith))
-        direct_exposed = 0.308 * np.cos(np.radians(90-zenith) * (0.998 - (90-zenith)**2/50000))
+        direct_exposed = 0.308 * np.cos(
+            np.radians(90 - zenith) * (0.998 - (90 - zenith) ** 2 / 50000)
+        )
 
     result = (
-        (1/STEFAN_BOLTZMANN) * (
-            angle_factor_down*rlds + angle_factor_up*rlus + absorption/emissivity*
-            (angle_factor_down * rsdsdiff + angle_factor_up * rsus + direct_exposed*rsdsdir)
+        (1 / STEFAN_BOLTZMANN)
+        * (
+            angle_factor_down * rlds
+            + angle_factor_up * rlus
+            + absorption
+            / emissivity
+            * (
+                angle_factor_down * rsdsdiff
+                + angle_factor_up * rsus
+                + direct_exposed * rsdsdir
+            )
         )
-    )**(0.25)
+    ) ** (0.25)
 
     if not array_input:
         result = np.squeeze(result)[()]

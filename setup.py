@@ -16,12 +16,7 @@ README = "README.rst"
 
 SOURCE_DIR = "src"
 
-REQUIREMENTS = [
-    "numpy",
-    "netCDF4",
-    "pandas",
-    "scipy"
-]
+REQUIREMENTS = ["numpy", "netCDF4", "pandas", "scipy"]
 REQUIREMENTS_TESTS = [
     "codecov",
     "coverage",

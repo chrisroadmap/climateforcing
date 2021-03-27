@@ -1,7 +1,7 @@
 from numpy import exp, ma, maximum
 
 
-def relative_humidity(p,q,t,A=17.625,B=-30.11,C=610.94,masked=False):
+def relative_humidity(p, q, t, A=17.625, B=-30.11, C=610.94, masked=False):
     """
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
@@ -17,18 +17,18 @@ def relative_humidity(p,q,t,A=17.625,B=-30.11,C=610.94,masked=False):
 
     p, q and t can be arrays.
     """
-    if masked==False:
-        es = C * exp(A*(t-273.15)/(B+t))
-        ws = 0.62198*es/(maximum(p,es)-(1-0.62198)*es)
-        RH = q/ws
+    if masked == False:
+        es = C * exp(A * (t - 273.15) / (B + t))
+        ws = 0.62198 * es / (maximum(p, es) - (1 - 0.62198) * es)
+        RH = q / ws
     else:
-        es = C * ma.exp(A*(t-273.15)/(B+t))
-        ws = 0.62198*es/(maximum(p,es)-(1-0.62198)*es)
-        RH = q/ws
+        es = C * ma.exp(A * (t - 273.15) / (B + t))
+        ws = 0.62198 * es / (maximum(p, es) - (1 - 0.62198) * es)
+        RH = q / ws
     return RH
 
 
-def specific_humidity(p,RH,t,A=17.625,B=-30.11,C=610.94,masked=False):
+def specific_humidity(p, RH, t, A=17.625, B=-30.11, C=610.94, masked=False):
     """
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
@@ -44,11 +44,10 @@ def specific_humidity(p,RH,t,A=17.625,B=-30.11,C=610.94,masked=False):
 
     p, RH and t can be arrays.
     """
-    if masked==False:
-        es = C * exp(A*(t-273.15)/(B+t))
-        q = 0.62198*(RH*es)/(maximum(p,es)-(1-0.62198)*es)
+    if masked == False:
+        es = C * exp(A * (t - 273.15) / (B + t))
+        q = 0.62198 * (RH * es) / (maximum(p, es) - (1 - 0.62198) * es)
     else:
-        es = C * ma.exp(A*(t-273.15)/(B+t))
-        q = 0.62198*(RH*es)/(maximum(p,es)-(1-0.62198)*es)
+        es = C * ma.exp(A * (t - 273.15) / (B + t))
+        q = 0.62198 * (RH * es) / (maximum(p, es) - (1 - 0.62198) * es)
     return q
-

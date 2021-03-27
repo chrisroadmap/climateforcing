@@ -23,7 +23,7 @@ help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 checks: $(VENV_DIR)  ## run all the checks
-	@echo "\n\n=== black ==="; $(VENV_DIR)/bin/black --check src tests setup.py docs/source/conf.py --exclude openscm_runner/_version.py || echo "--- black failed ---" >&2; \
+	@echo "\n\n=== black ==="; $(VENV_DIR)/bin/black --check src tests setup.py --exclude climateforcing/_version.py || echo "--- black failed ---" >&2; \
 		echo "\n\n=== flake8 ==="; $(VENV_DIR)/bin/flake8 src tests setup.py || echo "--- flake8 failed ---" >&2; \
 		echo "\n\n=== isort ==="; $(VENV_DIR)/bin/isort --check-only --quiet src tests setup.py || echo "--- isort failed ---" >&2; \
 		echo "\n\n=== pydocstyle ==="; $(VENV_DIR)/bin/pydocstyle src || echo "--- pydocstyle failed ---" >&2; \
@@ -39,7 +39,7 @@ format:  ## re-format files
 	make black
 
 black: $(VENV_DIR)  ## apply black formatter to source and tests
-	$(VENV_DIR)/bin/black --exclude _version.py setup.py src tests docs/source/conf.py scripts/*.py; 
+	$(VENV_DIR)/bin/black --exclude _version.py setup.py src tests; 
 
 isort: $(VENV_DIR)  ## format the code
 	$(VENV_DIR)/bin/isort src tests setup.py; 
