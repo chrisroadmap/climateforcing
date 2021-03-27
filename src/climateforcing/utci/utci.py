@@ -131,18 +131,19 @@ def utci(
     wind_speed_10m = np.asarray(wind_speed_10m)
     humidity = np.asarray(humidity)
 
-    ht = humidity_type.lower()[0]
-    ta = air_temperature - 273.15
-    es = saturation_specific_humidity(air_temperature)
-    if ht == "s":
-        ws = 0.62198 * es / (es - (1 - 0.62198) * es)
-        rh = 100 * humidity / ws
-    elif ht == "r":
-        rh = humidity
+    # turn off pylint warnings on short names, because the calculation gets stupid
+    humidity_type = humidity_type.lower()[0]
+    ta = air_temperature - 273.15  # pylint: disable=invalid-name
+    es = saturation_specific_humidity(air_temperature)  # pylint: disable=invalid-name
+    if humidity_type == "s":
+        ws = 0.62198 * es / (es - (1 - 0.62198) * es)  # pylint: disable=invalid-name
+        rh = 100 * humidity / ws  # pylint: disable=invalid-name
+    elif humidity_type == "r":
+        rh = humidity  # pylint: disable=invalid-name
     else:
         raise ValueError("`humidity_type` should be `relative` or `specific`")
     ppwv = es * rh / 100 / 1000  # partial pressure of water vapour, kPa
-    va = wind_speed_10m
+    va = wind_speed_10m  # pylint: disable=invalid-name
     delta_tmrt = mean_radiant_temperature - air_temperature
 
     # sixth order polynomial approximation to UTCI

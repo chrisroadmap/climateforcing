@@ -1,3 +1,6 @@
+"""
+APRP: the approximate partial radiative perturbation calculation
+"""
 import glob
 import warnings
 
@@ -5,15 +8,17 @@ import numpy as np
 from netCDF4 import Dataset
 
 # TODO: allow scalar and non-3D arrays in the input
-# TODO: docstrings for non-APRP function
+# TODO: docstrings for non-APRP functions
+# TODO: sort out refactoring for main aprp function
 
 
-def _pla(mu, gamma, alpha):
+def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
+    """Planetary albedo, eq. (7) of Taylor et al. (2007)"""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        a = mu * gamma + (mu * alpha * (1 - gamma) ** 2) / (1 - alpha * gamma)
-        a[~np.isfinite(a)] = 0
-    return a
+        pla = mu * gamma + (mu * alpha * (1 - gamma) ** 2) / (1 - alpha * gamma)
+        pla[~np.isfinite(pla)] = 0
+    return pla
 
 
 def cloud_radiative_effect(base, pert):
@@ -38,16 +43,16 @@ def cloud_radiative_effect(base, pert):
         var_dict["rlut"] = var_dict["rlut"]
         var_dict["rlutcs"] = var_dict["rlutcs"]
 
-    ERFLW = -pert["rlut"] - (-base["rlut"])
-    ERFaciLW = ERFLW - (-pert["rlutcs"] - (-base["rlutcs"]))
-    ERFariLW = ERFLW - ERFaciLW
-    return ERFariLW, ERFaciLW
+    erf_lw = -pert["rlut"] - (-base["rlut"])
+    erfaci_lw = erf_lw - (-pert["rlutcs"] - (-base["rlutcs"]))
+    erfari_lw = erf_lw - erfaci_lw
+    return erfari_lw, erfaci_lw
 
 
-def aprp(
+def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     base,
     pert,
-    lw=False,
+    longwave=False,
     breakdown=False,
     globalmean=False,
     lat=None,
@@ -82,7 +87,7 @@ def aprp(
             baseline climate to use
         pert : dict
             perturbed climate to use
-        lw : bool
+        longwave : bool
             calculate the longwave forcing, in addition to the shortwave.
         breakdown : bool
             provide the forward and reverse calculations of APRP in the output, along
@@ -140,11 +145,11 @@ def aprp(
             though note these only make sense if you are calculating aerosol forcing.
             The cloud fraction adjustment component of ERFaci is in t9.
 
-            if lw==True, central also contains 'ERFariLW' and 'ERFaciLW' as
+            if longwave==True, central also contains 'ERFariLW' and 'ERFaciLW' as
             calculated from the cloud radiative effect.
     """
     # check all required diagnostics are present
-    if lw:
+    if longwave:
         check_vars = [
             "rsdt",
             "rsus",
@@ -197,7 +202,7 @@ def aprp(
     if globalmean:
         if lat is None:
             raise ValueError("`lat` must be specified for `globalmean=True`")
-        elif len(lat) != base["rsdt"].shape[1]:
+        if len(lat) != base["rsdt"].shape[1]:
             raise ValueError(
                 "`lat` must be the same length as axis 1 of input variables"
             )
@@ -228,8 +233,6 @@ def aprp(
         rsutcs = 0.5 * (pert["rsutcs"] + base["rsutcs"])
         delta_clt = pert["clt"] - base["clt"]
         clt = 0.5 * (pert["clt"] + base["clt"])
-        delta_rsutoc = pert["rsutoc"] - base["rsutoc"]
-        delta_rsutcs = pert["rsutcs"] - base["rsutcs"]
 
         base["rsusoc"] = (base["rsus"] - (1 - base["clt"]) * (base["rsuscs"])) / base[
             "clt"
@@ -249,10 +252,6 @@ def aprp(
         pert["rsusoc"][~np.isfinite(pert["rsusoc"])] = pert["rsuscs"][
             ~np.isfinite(pert["rsusoc"])
         ]
-        rsusoc = 0.5 * (pert["rsusoc"] + base["rsusoc"])
-        rsuscs = 0.5 * (pert["rsuscs"] + base["rsuscs"])
-        delta_rsusoc = pert["rsusoc"] - base["rsusoc"]
-        delta_rsuscs = pert["rsuscs"] - base["rsuscs"]
 
         base["rsdsoc"] = (base["rsds"] - (1 - base["clt"]) * (base["rsdscs"])) / base[
             "clt"
@@ -272,56 +271,52 @@ def aprp(
         pert["rsdsoc"][~np.isfinite(pert["rsdsoc"])] = pert["rsdscs"][
             ~np.isfinite(pert["rsdsoc"])
         ]
-        rsdsoc = 0.5 * (pert["rsdsoc"] + base["rsdsoc"])
-        rsdscs = 0.5 * (pert["rsdscs"] + base["rsdscs"])
-        delta_rsdsoc = pert["rsdsoc"] - base["rsdsoc"]
-        delta_rsdscs = pert["rsdscs"] - base["rsdscs"]
 
-        A_oc_base = base["rsutoc"] / base["rsdt"]
-        A_oc_base[~np.isfinite(A_oc_base)] = 0.0  # this is safe
+        a_oc_base = base["rsutoc"] / base["rsdt"]
+        a_oc_base[~np.isfinite(a_oc_base)] = 0.0  # this is safe
         alpha_oc_base = base["rsusoc"] / base["rsdsoc"]
         alpha_oc_base[~np.isfinite(alpha_oc_base)] = 0.0
-        Q_oc_down_base = base["rsdsoc"] / base["rsdt"]
-        Q_oc_down_base[~np.isfinite(Q_oc_down_base)] = 0.0
-        mu_oc_base = A_oc_base + Q_oc_down_base * (1 - alpha_oc_base)
-        gamma_oc_base = (mu_oc_base - Q_oc_down_base) / (
-            mu_oc_base - alpha_oc_base * Q_oc_down_base
+        q_oc_down_base = base["rsdsoc"] / base["rsdt"]
+        q_oc_down_base[~np.isfinite(q_oc_down_base)] = 0.0
+        mu_oc_base = a_oc_base + q_oc_down_base * (1 - alpha_oc_base)
+        gamma_oc_base = (mu_oc_base - q_oc_down_base) / (
+            mu_oc_base - alpha_oc_base * q_oc_down_base
         )
         gamma_oc_base[~np.isfinite(gamma_oc_base)] = 0.0
 
-        A_oc_pert = pert["rsutoc"] / pert["rsdt"]
-        A_oc_pert[~np.isfinite(A_oc_pert)] = 0.0
+        a_oc_pert = pert["rsutoc"] / pert["rsdt"]
+        a_oc_pert[~np.isfinite(a_oc_pert)] = 0.0
         alpha_oc_pert = pert["rsusoc"] / pert["rsdsoc"]
         alpha_oc_pert[~np.isfinite(alpha_oc_pert)] = 0.0
-        Q_oc_down_pert = pert["rsdsoc"] / pert["rsdt"]
-        Q_oc_down_pert[~np.isfinite(Q_oc_down_pert)] = 0.0
-        mu_oc_pert = A_oc_pert + Q_oc_down_pert * (1 - alpha_oc_pert)
-        gamma_oc_pert = (mu_oc_pert - Q_oc_down_pert) / (
-            mu_oc_pert - alpha_oc_pert * Q_oc_down_pert
+        q_oc_down_pert = pert["rsdsoc"] / pert["rsdt"]
+        q_oc_down_pert[~np.isfinite(q_oc_down_pert)] = 0.0
+        mu_oc_pert = a_oc_pert + q_oc_down_pert * (1 - alpha_oc_pert)
+        gamma_oc_pert = (mu_oc_pert - q_oc_down_pert) / (
+            mu_oc_pert - alpha_oc_pert * q_oc_down_pert
         )
         gamma_oc_pert[~np.isfinite(gamma_oc_pert)] = 0.0
 
-        A_cs_base = base["rsutcs"] / base["rsdt"]
-        A_cs_base[~np.isfinite(A_cs_base)] = 0.0
+        a_cs_base = base["rsutcs"] / base["rsdt"]
+        a_cs_base[~np.isfinite(a_cs_base)] = 0.0
         alpha_cs_base = base["rsuscs"] / base["rsdscs"]
         alpha_cs_base[~np.isfinite(alpha_cs_base)] = 0.0
-        Q_cs_down_base = base["rsdscs"] / base["rsdt"]
-        Q_cs_down_base[~np.isfinite(Q_cs_down_base)] = 0.0
-        mu_cs_base = A_cs_base + Q_cs_down_base * (1 - alpha_cs_base)
-        gamma_cs_base = (mu_cs_base - Q_cs_down_base) / (
-            mu_cs_base - alpha_cs_base * Q_cs_down_base
+        q_cs_down_base = base["rsdscs"] / base["rsdt"]
+        q_cs_down_base[~np.isfinite(q_cs_down_base)] = 0.0
+        mu_cs_base = a_cs_base + q_cs_down_base * (1 - alpha_cs_base)
+        gamma_cs_base = (mu_cs_base - q_cs_down_base) / (
+            mu_cs_base - alpha_cs_base * q_cs_down_base
         )
         gamma_cs_base[~np.isfinite(gamma_cs_base)] = 0.0
 
-        A_cs_pert = pert["rsutcs"] / pert["rsdt"]
-        A_cs_pert[~np.isfinite(A_cs_pert)] = 0.0
+        a_cs_pert = pert["rsutcs"] / pert["rsdt"]
+        a_cs_pert[~np.isfinite(a_cs_pert)] = 0.0
         alpha_cs_pert = pert["rsuscs"] / pert["rsdscs"]
         alpha_cs_pert[~np.isfinite(alpha_cs_pert)] = 0.0
-        Q_cs_down_pert = pert["rsdscs"] / pert["rsdt"]
-        Q_cs_down_pert[~np.isfinite(Q_cs_down_pert)] = 0.0
-        mu_cs_pert = A_cs_pert + Q_cs_down_pert * (1 - alpha_cs_pert)
-        gamma_cs_pert = (mu_cs_pert - Q_cs_down_pert) / (
-            mu_cs_pert - alpha_cs_pert * Q_cs_down_pert
+        q_cs_down_pert = pert["rsdscs"] / pert["rsdt"]
+        q_cs_down_pert[~np.isfinite(q_cs_down_pert)] = 0.0
+        mu_cs_pert = a_cs_pert + q_cs_down_pert * (1 - alpha_cs_pert)
+        gamma_cs_pert = (mu_cs_pert - q_cs_down_pert) / (
+            mu_cs_pert - alpha_cs_pert * q_cs_down_pert
         )
         gamma_cs_pert[~np.isfinite(gamma_cs_pert)] = 0.0
 
@@ -333,96 +328,86 @@ def aprp(
         mu_base = (mu_oc_base) / mu_cs_base
         mu_base[~np.isfinite(mu_base)] = 0.0
 
-    dAoc_dacld = 0.5 * (
+    daoc_dacld = 0.5 * (
         (
-            _pla(mu_oc_base, gamma_oc_base, alpha_oc_pert)
-            - _pla(mu_oc_base, gamma_oc_base, alpha_oc_base)
+            _planetary_albedo(mu_oc_base, gamma_oc_base, alpha_oc_pert)
+            - _planetary_albedo(mu_oc_base, gamma_oc_base, alpha_oc_base)
         )
         + (
-            _pla(mu_oc_pert, gamma_oc_pert, alpha_oc_pert)
-            - (_pla(mu_oc_pert, gamma_oc_pert, alpha_oc_base))
+            _planetary_albedo(mu_oc_pert, gamma_oc_pert, alpha_oc_pert)
+            - (_planetary_albedo(mu_oc_pert, gamma_oc_pert, alpha_oc_base))
         )
     )
-    dAoc_dmcld = 0.5 * (
+    daoc_dmcld = 0.5 * (
         (
-            _pla(mu_pert, gamma_base, alpha_oc_base)
-            - _pla(mu_base, gamma_base, alpha_oc_base)
+            _planetary_albedo(mu_pert, gamma_base, alpha_oc_base)
+            - _planetary_albedo(mu_base, gamma_base, alpha_oc_base)
         )
         + (
-            _pla(mu_pert, gamma_pert, alpha_oc_pert)
-            - (_pla(mu_base, gamma_pert, alpha_oc_pert))
+            _planetary_albedo(mu_pert, gamma_pert, alpha_oc_pert)
+            - (_planetary_albedo(mu_base, gamma_pert, alpha_oc_pert))
         )
     )
-    dAoc_dgcld = 0.5 * (
+    daoc_dgcld = 0.5 * (
         (
-            _pla(mu_base, gamma_pert, alpha_oc_base)
-            - _pla(mu_base, gamma_base, alpha_oc_base)
+            _planetary_albedo(mu_base, gamma_pert, alpha_oc_base)
+            - _planetary_albedo(mu_base, gamma_base, alpha_oc_base)
         )
         + (
-            _pla(mu_pert, gamma_pert, alpha_oc_pert)
-            - (_pla(mu_pert, gamma_base, alpha_oc_pert))
-        )
-    )
-
-    dAoc_daaer = 0.5 * (
-        (
-            _pla(mu_oc_base, gamma_oc_base, alpha_cs_pert)
-            - _pla(mu_oc_base, gamma_oc_base, alpha_cs_base)
-        )
-        + (
-            _pla(mu_oc_pert, gamma_oc_pert, alpha_cs_pert)
-            - (_pla(mu_oc_pert, gamma_oc_pert, alpha_cs_base))
-        )
-    )
-    dAoc_dmaer = 0.5 * (
-        (
-            _pla(mu_cs_pert, gamma_oc_base, alpha_oc_base)
-            - _pla(mu_cs_base, gamma_oc_base, alpha_oc_base)
-        )
-        + (
-            _pla(mu_cs_pert, gamma_oc_pert, alpha_oc_pert)
-            - (_pla(mu_cs_base, gamma_oc_pert, alpha_oc_pert))
-        )
-    )
-    dAoc_dgaer = 0.5 * (
-        (
-            _pla(mu_oc_base, gamma_cs_pert, alpha_oc_base)
-            - _pla(mu_oc_base, gamma_cs_base, alpha_oc_base)
-        )
-        + (
-            _pla(mu_oc_pert, gamma_cs_pert, alpha_oc_pert)
-            - (_pla(mu_oc_pert, gamma_cs_base, alpha_oc_pert))
+            _planetary_albedo(mu_pert, gamma_pert, alpha_oc_pert)
+            - (_planetary_albedo(mu_pert, gamma_base, alpha_oc_pert))
         )
     )
 
-    dAcs_daclr = 0.5 * (
+    daoc_dmaer = 0.5 * (
         (
-            _pla(mu_cs_base, gamma_cs_base, alpha_cs_pert)
-            - _pla(mu_cs_base, gamma_cs_base, alpha_cs_base)
+            _planetary_albedo(mu_cs_pert, gamma_oc_base, alpha_oc_base)
+            - _planetary_albedo(mu_cs_base, gamma_oc_base, alpha_oc_base)
         )
         + (
-            _pla(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_pla(mu_cs_pert, gamma_cs_pert, alpha_cs_base))
+            _planetary_albedo(mu_cs_pert, gamma_oc_pert, alpha_oc_pert)
+            - (_planetary_albedo(mu_cs_base, gamma_oc_pert, alpha_oc_pert))
         )
     )
-    dAcs_dmaer = 0.5 * (
+    daoc_dgaer = 0.5 * (
         (
-            _pla(mu_cs_pert, gamma_cs_base, alpha_cs_base)
-            - _pla(mu_cs_base, gamma_cs_base, alpha_cs_base)
+            _planetary_albedo(mu_oc_base, gamma_cs_pert, alpha_oc_base)
+            - _planetary_albedo(mu_oc_base, gamma_cs_base, alpha_oc_base)
         )
         + (
-            _pla(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_pla(mu_cs_base, gamma_cs_pert, alpha_cs_pert))
+            _planetary_albedo(mu_oc_pert, gamma_cs_pert, alpha_oc_pert)
+            - (_planetary_albedo(mu_oc_pert, gamma_cs_base, alpha_oc_pert))
         )
     )
-    dAcs_dgaer = 0.5 * (
+
+    dacs_daclr = 0.5 * (
         (
-            _pla(mu_cs_base, gamma_cs_pert, alpha_cs_base)
-            - _pla(mu_cs_base, gamma_cs_base, alpha_cs_base)
+            _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_pert)
+            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
         )
         + (
-            _pla(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_pla(mu_cs_pert, gamma_cs_base, alpha_cs_pert))
+            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
+            - (_planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_base))
+        )
+    )
+    dacs_dmaer = 0.5 * (
+        (
+            _planetary_albedo(mu_cs_pert, gamma_cs_base, alpha_cs_base)
+            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
+        )
+        + (
+            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
+            - (_planetary_albedo(mu_cs_base, gamma_cs_pert, alpha_cs_pert))
+        )
+    )
+    dacs_dgaer = 0.5 * (
+        (
+            _planetary_albedo(mu_cs_base, gamma_cs_pert, alpha_cs_base)
+            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
+        )
+        + (
+            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
+            - (_planetary_albedo(mu_cs_pert, gamma_cs_base, alpha_cs_pert))
         )
     )
 
@@ -430,27 +415,24 @@ def aprp(
     base["rsntcs"] = base["rsdt"] - base["rsutcs"]
     pert["rsnt"] = pert["rsdt"] - pert["rsut"]
     pert["rsntcs"] = pert["rsdt"] - pert["rsutcs"]
-    rsnt = 0.5 * (base["rsnt"] + pert["rsnt"])
-    rsntcs = 0.5 * (base["rsntcs"] + pert["rsntcs"])
     pert["rsntoc"] = pert["rsdt"] - pert["rsutoc"]
     base["rsntoc"] = base["rsdt"] - base["rsutoc"]
-    rsntoc = 0.5 * (pert["rsntoc"] + base["rsntoc"])
 
     # t1 to t9 are the coefficients of equation A2 in Zelinka et al., 2014
     forward = {}
     reverse = {}
     central = {}
-    forward["t1"] = -base["rsntcs"] * (1 - clt) * dAcs_daclr
-    forward["t2"] = -base["rsntcs"] * (1 - clt) * dAcs_dgaer
-    forward["t3"] = -base["rsntcs"] * (1 - clt) * dAcs_dmaer
-    forward["t4"] = -base["rsnt"] * clt * (dAoc_dacld)
-    forward["t5"] = -base["rsnt"] * clt * (dAoc_dgaer)
-    forward["t6"] = -base["rsnt"] * clt * (dAoc_dmaer)
-    forward["t7"] = -base["rsnt"] * clt * (dAoc_dgcld)
-    forward["t8"] = -base["rsnt"] * clt * (dAoc_dmcld)
+    forward["t1"] = -base["rsntcs"] * (1 - clt) * dacs_daclr
+    forward["t2"] = -base["rsntcs"] * (1 - clt) * dacs_dgaer
+    forward["t3"] = -base["rsntcs"] * (1 - clt) * dacs_dmaer
+    forward["t4"] = -base["rsnt"] * clt * (daoc_dacld)
+    forward["t5"] = -base["rsnt"] * clt * (daoc_dgaer)
+    forward["t6"] = -base["rsnt"] * clt * (daoc_dmaer)
+    forward["t7"] = -base["rsnt"] * clt * (daoc_dgcld)
+    forward["t8"] = -base["rsnt"] * clt * (daoc_dmcld)
     forward["t9"] = -delta_clt * (rsutoc - rsutcs)
-    forward["t2_clr"] = -base["rsntcs"] * dAcs_dgaer
-    forward["t3_clr"] = -base["rsntcs"] * dAcs_dmaer
+    forward["t2_clr"] = -base["rsntcs"] * dacs_dgaer
+    forward["t3_clr"] = -base["rsntcs"] * dacs_dmaer
 
     # set thresholds
     # TODO: can we avoid a hard cloud fraction threshold here?
@@ -490,17 +472,17 @@ def aprp(
     forward["ERFaciSW"] = forward["t7"] + forward["t8"] + forward["t9"]
     forward["albedo"] = forward["t1"] + forward["t4"]
 
-    reverse["t1"] = -pert["rsntcs"] * (1 - clt) * dAcs_daclr
-    reverse["t2"] = -pert["rsntcs"] * (1 - clt) * dAcs_dgaer
-    reverse["t3"] = -pert["rsntcs"] * (1 - clt) * dAcs_dmaer
-    reverse["t4"] = -pert["rsnt"] * clt * (dAoc_dacld)
-    reverse["t5"] = -pert["rsnt"] * clt * (dAoc_dgaer)
-    reverse["t6"] = -pert["rsnt"] * clt * (dAoc_dmaer)
-    reverse["t7"] = -pert["rsnt"] * clt * (dAoc_dgcld)
-    reverse["t8"] = -pert["rsnt"] * clt * (dAoc_dmcld)
+    reverse["t1"] = -pert["rsntcs"] * (1 - clt) * dacs_daclr
+    reverse["t2"] = -pert["rsntcs"] * (1 - clt) * dacs_dgaer
+    reverse["t3"] = -pert["rsntcs"] * (1 - clt) * dacs_dmaer
+    reverse["t4"] = -pert["rsnt"] * clt * (daoc_dacld)
+    reverse["t5"] = -pert["rsnt"] * clt * (daoc_dgaer)
+    reverse["t6"] = -pert["rsnt"] * clt * (daoc_dmaer)
+    reverse["t7"] = -pert["rsnt"] * clt * (daoc_dgcld)
+    reverse["t8"] = -pert["rsnt"] * clt * (daoc_dmcld)
     reverse["t9"] = -delta_clt * (rsutoc - rsutcs)
-    reverse["t2_clr"] = -pert["rsntcs"] * dAcs_dgaer
-    reverse["t3_clr"] = -pert["rsntcs"] * dAcs_dmaer
+    reverse["t2_clr"] = -pert["rsntcs"] * dacs_dgaer
+    reverse["t3_clr"] = -pert["rsntcs"] * dacs_dmaer
 
     # set thresholds
     reverse["t4"] = np.where(
@@ -539,10 +521,10 @@ def aprp(
     reverse["ERFaciSW"] = reverse["t7"] + reverse["t8"] + reverse["t9"]
     reverse["albedo"] = reverse["t1"] + reverse["t4"]
 
-    for key in forward.keys():
+    for key in forward:
         central[key] = 0.5 * (forward[key] + reverse[key])
 
-    if lw:
+    if longwave:
         central["ERFariLW"], central["ERFaciLW"] = cloud_radiative_effect(base, pert)
         forward["ERFariLW"] = np.copy(central["ERFariLW"])
         reverse["ERFariLW"] = np.copy(central["ERFariLW"])
@@ -561,18 +543,17 @@ def aprp(
             weights = -np.diff(np.sin(np.radians(latbounds)))[None, :, None] * np.ones(
                 (base["rsdt"].shape[0], 1, base["rsdt"].shape[2])
             )
-        for key in central.keys():
+        for key in central:
             central[key] = np.average(central[key], weights=weights)
             forward[key] = np.average(forward[key], weights=weights)
             reverse[key] = np.average(reverse[key], weights=weights)
 
     if breakdown:
         return central, forward, reverse
-    else:
-        return central
+    return central
 
 
-def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, None)):
+def create_input(basedir, pertdir, latout=False, longwave=False, slc=slice(0, None, None)):
     """Utility function to extract variables from a given directory and place
      into dictionaries.
 
@@ -590,8 +571,8 @@ def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, Non
         basedir: directory containing control variables
         pertdir: directory containing forcing perturbed variables
         latout: True if lat variable to be included in output.
-        lw: Set to True to do LW calculation using CRE.
-        sl: slice of indices to use from each dataset.
+        longwave: Set to True to do LW calculation using CRE.
+        slc: `slice` of indices to use from each dataset.
 
     Outputs:
         base: dict of variables needed for APRP from control
@@ -602,7 +583,7 @@ def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, Non
     base = {}
     pert = {}
 
-    if lw:
+    if longwave:
         varlist = [
             "rsdt",
             "rsus",
@@ -625,10 +606,10 @@ def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, Non
                 "No variables of name %s found in directory %s" % (var, basedir)
             )
         for i, filename in enumerate(filenames):
-            nc = Dataset(filename)
-            invar = nc.variables[var][sl, ...]
-            lat = nc.variables["lat"][:]
-            nc.close()
+            ncfile = Dataset(filename)
+            invar = ncfile.variables[var][slc, ...]
+            lat = ncfile.variables["lat"][:]
+            ncfile.close()
             if i == 0:
                 base[var] = invar
             else:
@@ -640,10 +621,10 @@ def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, Non
                 "No variables of name %s found in directory %s" % (var, pertdir)
             )
         for i, filename in enumerate(filenames):
-            nc = Dataset(filename)
-            invar = nc.variables[var][sl, ...]
-            lat = nc.variables["lat"][:]
-            nc.close()
+            ncfile = Dataset(filename)
+            invar = ncfile.variables[var][slc, ...]
+            lat = ncfile.variables["lat"][:]
+            ncfile.close()
             if i == 0:
                 pert[var] = invar
             else:
@@ -651,5 +632,4 @@ def create_input(basedir, pertdir, latout=False, lw=False, sl=slice(0, None, Non
 
     if latout:
         return base, pert, lat
-    else:
-        return base, pert
+    return base, pert

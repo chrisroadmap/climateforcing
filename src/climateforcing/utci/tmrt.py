@@ -11,7 +11,8 @@ import numpy as np
 from ..constants import STEFAN_BOLTZMANN
 
 
-def mean_radiant_temperature(
+# TODO: refactor, I'm too lazy/busy right now
+def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-locals
     rlds,
     rlus,
     rsdsdiff,

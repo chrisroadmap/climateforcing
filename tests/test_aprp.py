@@ -29,7 +29,7 @@ def test_aprp_access_esm1_5():
     }
     BASEDIR = "tests/testdata/ACCESS-ESM1-5/piClim-control/"
     PERTDIR = "tests/testdata/ACCESS-ESM1-5/piClim-aer/"
-    base, pert, lat = create_input(BASEDIR, PERTDIR, lw=True, latout=True)
-    result = aprp(base, pert, lat=lat, lw=True, globalmean=True)
+    base, pert, lat = create_input(BASEDIR, PERTDIR, longwave=True, latout=True)
+    result = aprp(base, pert, lat=lat, longwave=True, globalmean=True)
     for key, value in result.items():
         assert np.allclose(value, EXPECTED_RESULT[key])
