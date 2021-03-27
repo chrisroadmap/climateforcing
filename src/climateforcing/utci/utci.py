@@ -69,16 +69,16 @@ def saturation_specific_humidity(air_temperature):
     """Conversion of air temperature to saturation specific humidity.
 
     Inputs:
-        air_temperature :: float or `numpy.ndarray`
+        air_temperature :: float, list or `numpy.ndarray`
             air temperature, Kelvin
 
     Returns:
         ssh :: float or `numpy.ndarray`
             saturation specific humidity, Pa
     """
+    # allow list input: convert to array
     # integers to negative powers not allowed, ensure float
-    if isinstance(air_temperature, np.ndarray):
-        air_temperature = air_temperature.astype(float)
+    air_temperature = np.asarray(air_temperature).astype(float)
 
     log_es = (
         2.7150305 * np.log(air_temperature) + 
@@ -99,13 +99,13 @@ def utci(air_temperature, mean_radiant_temperature, wind_speed_10m, humidity,
     """Calculate Universal Thermal Climate Index
 
     Inputs:
-        air_temperature :: float or `numpy.ndarray`
+        air_temperature :: float, list or `numpy.ndarray`
             air temperature, Kelvin
-        mean_radiant_temperature :: float or `numpy.ndarray`
+        mean_radiant_temperature :: float, list or `numpy.ndarray`
             mean radiant temperature, Kelvin. See `utci.mean_radiant_temperature`.
-        wind_speed_10m :: float or `numpy.ndarray`
+        wind_speed_10m :: float, list or `numpy.ndarray`
             wind speed at 10m above ground level
-        humidity :: float or `numpy.ndarray`
+        humidity :: float, list or `numpy.ndarray`
             either relative humidity in percent, or specific humidity in Pa. See
             `humidity_type`.
         humidity_type :: string
@@ -113,12 +113,18 @@ def utci(air_temperature, mean_radiant_temperature, wind_speed_10m, humidity,
             'specific' : humidity is expressed as specific humidity
 
     Returns:
-        utci :: float
+        utci :: float or `numpy.ndarray`
             Universal Thermal Climate Index value in degrees Celcius scale
 
     Raises:
         ValueError if `humidity_type` does not begin with 'r' or 's'
     """
+
+    # allow list input: convert to array
+    air_temperature = np.asarray(air_temperature)
+    mean_radiant_temperature = np.asarray(mean_radiant_temperature)
+    wind_speed_10m = np.asarray(wind_speed_10m)
+    humidity = np.asarray(humidity)
 
     ht = humidity_type.lower()[0]
     ta = air_temperature - 273.15
