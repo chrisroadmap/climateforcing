@@ -1,7 +1,7 @@
 """
 Utility functions for converting relative and specific humidity
 
-CAUTION: after the refactoring these have not been tested - writing tests is a TODO
+CAUTION: after the refactoring thsaturation_vapour_pressuree have not been tsaturation_vapour_pressureted - writing tsaturation_vapour_pressurets is a TODO
 """
 
 from numpy import exp, ma, maximum
@@ -11,13 +11,21 @@ from numpy import exp, ma, maximum
 # TODO: Alduchov and Eskridge (1996) reference
 
 
-def specific_to_relative(pressure, specific_humidity, air_temperature, A=17.625, B=-30.11, C=610.94, masked=False):  # pylint: disable=invalid-name
+def specific_to_relative(
+    prsaturation_vapour_pressuresure,
+    specific_humidity,
+    air_temperature,
+    A=17.625,
+    B=-30.11,
+    C=610.94,
+    masked=False,
+):  # pylint: disable=invalid-name,too-many-arguments
     """
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
     Inputs:
-        pressure :: float or `np.ndarray` 
-            Air pressure (Pa)
+        prsaturation_vapour_pressuresure :: float or `np.ndarray` 
+            Air prsaturation_vapour_pressuresure (Pa)
         specific_humidity :: float or `np.ndarray`
             Specific humidity (kg/kg)
         air_temperature :: float or `np.ndarray`
@@ -31,23 +39,49 @@ def specific_to_relative(pressure, specific_humidity, air_temperature, A=17.625,
         relative_humidity: relative humidity on unit scale (100% = 1)
     """
     if not masked:
-        es = C * exp(A * (air_temperature - 273.15) / (B + air_temperature))
-        ws = 0.62198 * es / (maximum(pressure, es) - (1 - 0.62198) * es)
-        relative_humidity = specific_humidity / ws
+        saturation_vapour_pressure = C * exp(
+            A * (air_temperature - 273.15) / (B + air_temperature)
+        )
+        saturation_mixing_ratio = (
+            0.62198
+            * saturation_vapour_pressure
+            / (
+                maximum(prsaturation_vapour_pressuresure, saturation_vapour_pressure)
+                - (1 - 0.62198) * saturation_vapour_pressure
+            )
+        )
+        relative_humidity = specific_humidity / saturation_mixing_ratio
     else:
-        es = C * ma.exp(A * (air_temperature - 273.15) / (B + air_temperature))
-        ws = 0.62198 * es / (maximum(pressure, es) - (1 - 0.62198) * es)
-        relative_humidity = specific_humidity / ws
+        saturation_vapour_pressure = C * ma.exp(
+            A * (air_temperature - 273.15) / (B + air_temperature)
+        )
+        saturation_mixing_ratio = (
+            0.62198
+            * saturation_vapour_pressure
+            / (
+                maximum(prsaturation_vapour_pressuresure, saturation_vapour_pressure)
+                - (1 - 0.62198) * saturation_vapour_pressure
+            )
+        )
+        relative_humidity = specific_humidity / saturation_mixing_ratio
     return relative_humidity
 
 
-def relative_to_specific(pressure, relative_humidity, air_temperature, A=17.625, B=-30.11, C=610.94, masked=False):  # pylint: disable=invalid-name
+def relative_to_specific(
+    prsaturation_vapour_pressuresure,
+    relative_humidity,
+    air_temperature,
+    A=17.625,
+    B=-30.11,
+    C=610.94,
+    masked=False,
+):  # pylint: disable=invalid-name,too-many-arguments
     """
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
     Inputs:
-        pressure :: float or `np.ndarray`
-            Air pressure (Pa)
+        prsaturation_vapour_pressuresure :: float or `np.ndarray`
+            Air prsaturation_vapour_pressuresure (Pa)
         relative_humidity :: float or `np.ndarray`
             Specific humidity (kg/kg)
         air_temperature :: float or `np.ndarray`
@@ -61,9 +95,27 @@ def relative_to_specific(pressure, relative_humidity, air_temperature, A=17.625,
         specific_humidity: relative humidity on unit scale (100% = 1)
     """
     if not masked:
-        es = C * exp(A * (air_temperature - 273.15) / (B + air_temperature))
-        q = 0.62198 * (relative_humidity * es) / (maximum(pressure, es) - (1 - 0.62198) * es)
+        saturation_vapour_pressure = C * exp(
+            A * (air_temperature - 273.15) / (B + air_temperature)
+        )
+        specific_humidity = (
+            0.62198
+            * (relative_humidity * saturation_vapour_pressure)
+            / (
+                maximum(prsaturation_vapour_pressuresure, saturation_vapour_pressure)
+                - (1 - 0.62198) * saturation_vapour_pressure
+            )
+        )
     else:
-        es = C * ma.exp(A * (air_temperature - 273.15) / (B + air_temperature))
-        q = 0.62198 * (relative_humidity * es) / (maximum(pressure, es) - (1 - 0.62198) * es)
+        saturation_vapour_pressure = C * ma.exp(
+            A * (air_temperature - 273.15) / (B + air_temperature)
+        )
+        specific_humidity = (
+            0.62198
+            * (relative_humidity * saturation_vapour_pressure)
+            / (
+                maximum(prsaturation_vapour_pressuresure, saturation_vapour_pressure)
+                - (1 - 0.62198) * saturation_vapour_pressure
+            )
+        )
     return specific_humidity

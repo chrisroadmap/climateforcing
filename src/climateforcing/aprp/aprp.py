@@ -553,7 +553,9 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
     return central
 
 
-def create_input(basedir, pertdir, latout=False, longwave=False, slc=slice(0, None, None)):
+def create_input(
+    basedir, pertdir, latout=False, longwave=False, slc=slice(0, None, None)
+):
     """Utility function to extract variables from a given directory and place
      into dictionaries.
 
