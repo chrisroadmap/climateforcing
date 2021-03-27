@@ -1,5 +1,7 @@
 import pickle
+
 import numpy as np
+
 from climateforcing.twolayermodel import TwoLayerModel
 
 # TODO: add in unit tests

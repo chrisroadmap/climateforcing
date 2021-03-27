@@ -1,6 +1,7 @@
 import glob
-import numpy as np
 import warnings
+
+import numpy as np
 from netCDF4 import Dataset
 
 # TODO: allow scalar and non-3D arrays in the input

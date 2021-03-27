@@ -1,11 +1,10 @@
-import pytest
-from climateforcing.utci import (
-    utci,
-    saturation_specific_humidity,
-    mean_radiant_temperature,
-)
-import numpy as np
 import numbers
+
+import numpy as np
+import pytest
+
+from climateforcing.utci import (mean_radiant_temperature,
+                                 saturation_specific_humidity, utci)
 
 
 def test_utci_array():
