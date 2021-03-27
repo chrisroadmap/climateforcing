@@ -103,7 +103,7 @@ def utci(air_temperature, mean_radiant_temperature, wind_speed_10m, humidity,
             air temperature, Kelvin
         mean_radiant_temperature :: float, list or `numpy.ndarray`
             mean radiant temperature, Kelvin. See `utci.mean_radiant_temperature`.
-        wind_speed_10m :: floatm list or `numpy.ndarray`
+        wind_speed_10m :: float, list or `numpy.ndarray`
             wind speed at 10m above ground level
         humidity :: float, list or `numpy.ndarray`
             either relative humidity in percent, or specific humidity in Pa. See
