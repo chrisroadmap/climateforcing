@@ -32,7 +32,6 @@ REQUIREMENTS_DEPLOY = ["twine>=1.11.0", "setuptools>=41.2", "wheel>=0.31.0"]
 
 REQUIREMENTS_DEV = [
     *[
-        "bandit",
         "black==19.10b0",
         "flake8",
         "isort>5",
