@@ -528,12 +528,12 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
     if globalmean:
         # is latitude ascending or descending?
         if lat[0] < lat[-1]:
-            latbounds = np.concatenate(([-90], 0.5 * lat[1:] + lat[:-1], [90]))
+            latbounds = np.concatenate(([-90], 0.5 * (lat[1:] + lat[:-1]), [90]))
             weights = np.diff(np.sin(np.radians(latbounds)))[None, :, None] * np.ones(
                 (base["rsdt"].shape[0], 1, base["rsdt"].shape[2])
             )
         else:
-            latbounds = np.concatenate(([90], 0.5 * lat[1:] + lat[:-1], [-90]))
+            latbounds = np.concatenate(([90], 0.5 * (lat[1:] + lat[:-1]), [-90]))
             weights = -np.diff(np.sin(np.radians(latbounds)))[None, :, None] * np.ones(
                 (base["rsdt"].shape[0], 1, base["rsdt"].shape[2])
             )
