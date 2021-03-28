@@ -2,11 +2,8 @@ import numbers
 
 import numpy as np
 
-from climateforcing.utci import (
-    mean_radiant_temperature,
-    saturation_specific_humidity,
-    utci,
-)
+from climateforcing.utci import (mean_radiant_temperature,
+                                 saturation_specific_humidity, utci)
 
 
 def test_utci_array():
