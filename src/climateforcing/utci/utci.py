@@ -1,5 +1,5 @@
 """
-Module to calculate Universal Thermal Climate Index
+Module to calculate Universal Thermal Climate Index.
 
 Python translation from the original FORTRAN code by Peter Broede, used with
 permission.
@@ -7,8 +7,8 @@ permission.
 If you use this in your own work, please cite the following paper:
 
     Bröde P, Fiala D, Blazejczyk K, Holmér I, Jendritzky G, Kampmann B, Tinz B,
-    Havenith G, 2012. Deriving the operational procedure for the Universal Thermal 
-    Climate Index (UTCI). International Journal of Biometeorology 56, 481-494, 
+    Havenith G, 2012. Deriving the operational procedure for the Universal Thermal
+    Climate Index (UTCI). International Journal of Biometeorology 56, 481-494,
     https://doi.org/10.1007/s00484-011-0454-1
 
 The following is the original licence notice from the FORTRAN software.
@@ -19,7 +19,7 @@ The following is the original licence notice from the FORTRAN software.
     Changed ReadMe text and program messages for public release
 
     Copyright (C) 2009  Peter Broede
-    
+
     The programs are distributed in the hope that they will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,7 +29,7 @@ Disclaimer of Warranty.
 THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
 WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE
 PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
-BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
 PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS
 WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY
 SERVICING, REPAIR OR CORRECTION.
@@ -37,7 +37,7 @@ SERVICING, REPAIR OR CORRECTION.
 Limitation of Liability.
 
 IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY COPYRIGHT
-HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE PROGRAM AS PERMITTED ABOVE, 
+HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE PROGRAM AS PERMITTED ABOVE,
 BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR
 CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING
 BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
@@ -66,7 +66,7 @@ import numpy as np
 
 
 def saturation_specific_humidity(air_temperature):
-    """Conversion of air temperature to saturation specific humidity.
+    """Convert air temperature to saturation specific humidity.
 
     Inputs:
         air_temperature :: float, list or `numpy.ndarray`
@@ -101,7 +101,7 @@ def utci(
     humidity,
     humidity_type="relative",
 ):
-    """Calculate Universal Thermal Climate Index
+    """Calculate Universal Thermal Climate Index.
 
     Inputs:
         air_temperature :: float, list or `numpy.ndarray`
@@ -124,7 +124,6 @@ def utci(
     Raises:
         ValueError if `humidity_type` does not begin with 'r' or 's'
     """
-
     # allow list input: convert to array
     air_temperature = np.asarray(air_temperature)
     mean_radiant_temperature = np.asarray(mean_radiant_temperature)

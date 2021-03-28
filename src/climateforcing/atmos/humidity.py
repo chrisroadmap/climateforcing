@@ -1,7 +1,6 @@
-"""
-Utility functions for converting relative and specific humidity
+"""Utility functions for converting relative and specific humidity.
 
-CAUTION: after the refactoring thsaturation_vapour_pressuree have not been tsaturation_vapour_pressureted - writing tsaturation_vapour_pressurets is a TODO
+CAUTION: after the refactoring these have not been tested.
 """
 
 from numpy import exp, ma, maximum
@@ -20,11 +19,12 @@ def specific_to_relative(
     C=610.94,
     masked=False,
 ):  # pylint: disable=invalid-name,too-many-arguments
-    """
+    """Convert specific humidity to relative humidity.
+
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
     Inputs:
-        prsaturation_vapour_pressuresure :: float or `np.ndarray` 
+        prsaturation_vapour_pressuresure :: float or `np.ndarray`
             Air prsaturation_vapour_pressuresure (Pa)
         specific_humidity :: float or `np.ndarray`
             Specific humidity (kg/kg)
@@ -76,7 +76,8 @@ def relative_to_specific(
     C=610.94,
     masked=False,
 ):  # pylint: disable=invalid-name,too-many-arguments
-    """
+    """Convert relative humidity to specific humidity.
+
     From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
 
     Inputs:

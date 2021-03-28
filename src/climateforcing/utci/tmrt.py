@@ -1,7 +1,7 @@
 """
-Calculate mean radiant temperature
+Calculate mean radiant temperature.
 
-Di Napoli, C., Hogan, R.J. & Pappenberger, F. Mean radiant temperature from 
+Di Napoli, C., Hogan, R.J. & Pappenberger, F. Mean radiant temperature from
 global-scale numerical weather prediction models. Int J Biometeorol 64, 1233–1245
 (2020). https://doi.org/10.1007/s00484-020-01900-5
 """
@@ -26,7 +26,8 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
     cos_zenith=1,
     lit=1,
 ):
-    """
+    """Calculate the mean radiant temperature.
+
     Inputs:
         rlds : float
             surface longwave downwelling radiation, W m-2
@@ -55,10 +56,10 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
             proportion of the time interval that the sun is above the horizon. Use
             lit=1 for instantaneous daytime calculations (this is most relevant for
             climate model data over longer periods like 3 hours).
+
     Returns:
         mean_radiant_temperature, Kelvin
     """
-
     # check if the input is scalar or array
     rlds = np.asarray(rlds)
     rlus = np.asarray(rlus)

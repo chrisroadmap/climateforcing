@@ -1,6 +1,4 @@
-"""
-APRP: the approximate partial radiative perturbation calculation
-"""
+"""APRP: the approximate partial radiative perturbation calculation."""
 import glob
 import warnings
 
@@ -13,7 +11,7 @@ from netCDF4 import Dataset
 
 
 def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
-    """Planetary albedo, eq. (7) of Taylor et al. (2007)"""
+    """Planetary albedo, eq. (7) of Taylor et al. (2007)."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         pla = mu * gamma + (mu * alpha * (1 - gamma) ** 2) / (1 - alpha * gamma)
@@ -22,8 +20,7 @@ def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
 
 
 def cloud_radiative_effect(base, pert):
-    """Calculate the cloud radiative effect and approximate split of LW radiation
-    into ERFari and ERFaci.
+    """Calculate the cloud radiative effect intended for longwave fluxes.
 
     Input:
         base, pert: dicts of CMIP diagnostics required to calculate APRP:
@@ -33,7 +30,6 @@ def cloud_radiative_effect(base, pert):
     Output:
         ERFariLW, ERFaciLW: arrays
     """
-
     # check all required diagnostics are present
     check_vars = ["rlut", "rlutcs"]
     for var_dict in [base, pert]:
@@ -49,7 +45,7 @@ def cloud_radiative_effect(base, pert):
     return erfari_lw, erfaci_lw
 
 
-def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: E501
     base,
     pert,
     longwave=False,
@@ -59,8 +55,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
     cs_threshold=0.02,
     clt_percent=True,
 ):
-    """
-    Approximate Partial Raditive Perturbation calculation
+    """Approximate Partial Raditive Perturbation calculation.
 
     This calculates the breakdown of shortwave radiative forcing into absorption
     and scattering components. When used with aerosol forcing, it can be used to
@@ -69,8 +64,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
 
     References:
     -----------
-
-    Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying 
+    Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying
     components of aerosol‐cloud‐radiation interactions in climate models, J. Geophys.
     Res. Atmos., 119, 7599– 7615, https://doi.org/10.1002/2014JD021710.
 
@@ -101,7 +95,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
             minimum cloud fraction (0-1 scale) for calculation of cloudy-sky APRP. If
             either perturbed or control run cloud fraction is below this, set the APRP
             flux to zero. It is recommended to use a small positive value, as the
-            cloud fraction appears in the denominator of the calculation. Taken from 
+            cloud fraction appears in the denominator of the calculation. Taken from
             Mark Zelinka's implementation.
         clt_percent : bool
             is cloud fraction from base and pert in percent (True) or 0-1 scale
@@ -124,7 +118,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
 
         rlut    : TOA outgoing longwave flux (W m-2)
         rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
-          
+
     Returns:
         central[, forward, reverse] : dict(s)
             Components of APRP as defined by equation A2 of Zelinka et al., 2014
@@ -556,10 +550,9 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
 def create_input(
     basedir, pertdir, latout=False, longwave=False, slc=slice(0, None, None)
 ):
-    """Utility function to extract variables from a given directory and place
-     into dictionaries.
+    """Extract variables from a given directory and places into dictionaries.
 
-    It assumes that base and pert are different directories and only one 
+    It assumes that base and pert are different directories and only one
     experiment output is present in each directory.
 
     Slicing into time chunks is allowed and providing the filenames
@@ -581,7 +574,6 @@ def create_input(
         pert: dict of variables needed for APRP from experiment
         [lat]: latitude points relating to axis 1 of arrays
     """
-
     base = {}
     pert = {}
 

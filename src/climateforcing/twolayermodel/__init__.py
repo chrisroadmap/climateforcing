@@ -1,19 +1,45 @@
+"""
+Held/Geoffroy two-layer energy balance climate model.
+
+Adapted from a version originally provided by Glen Harris, UK Met Office.
+
+This implementation most closely follows Geoffroy Part II.
+
+Held, I. M., Winton, M., Takahashi, K., Delworth, T., Zeng, F., & Vallis, G. K. (2010),
+Probing the Fast and Slow Components of Global Warming by Returning Abruptly to
+Preindustrial Forcing, J. Climate, 23(9), 2418–2427,
+https://doi.org/10.1175/2009JCLI3466.1
+
+Geoffroy, O., Saint-Martin, D., Olivié, D. J. L., Voldoire, A., Bellon, G., & Tytéca,
+S. (2013a). Transient Climate Response in a Two-Layer Energy-Balance Model. Part I:
+Analytical Solution and Parameter Calibration Using CMIP5 AOGCM Experiments, J.
+Climate, 26(6), 1841-1857, https://doi.org/10.1175/JCLI-D-12-00195.1
+
+Geoffroy, O., Saint-Martin, D., Bellon, G., Voldoire, A., Olivié, D. J. L., & Tytéca,
+S. (2013b), Transient Climate Response in a Two-Layer Energy-Balance Model. Part II:
+Representation of the Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
+AOGCMs, J. Climate, 26(6), 1859-1876, https://doi.org/10.1175/JCLI-D-12-00196.1
+
+Palmer, M. D., Harris, G. R. and Gregory, J. M. (2018), Extending CMIP5 projections of
+global mean temperature change and sea level rise due to the thermal expansion using a
+physically-based emulator, Environ. Res. Lett., 13(8), 084003,
+https://doi.org/10.1088/1748-9326/aad2e4
+"""
+
 import math
-import os
-import sys
 
 import numpy
 import pandas
 from scipy.interpolate import interp1d
 
-from ..constants import *
+from ..constants import EARTHRADIUS, SECPERYEAR
 
 
-class TwoLayerModel:
+class TwoLayerModel:  # pylint: disable=too-few-public-methods
     """Defines the two-layer climate model.
 
     Attributes:
-        default (dict): Default parameters for running the two-layer model. 
+        default (dict): Default parameters for running the two-layer model.
             Overwritten using **kwargs (see call to `__init__`)
         extforce (numpy.ndarray): Effective radiative forcing with which to
             run the model.
@@ -41,28 +67,28 @@ class TwoLayerModel:
     }
 
     def __init__(self, **kwargs):
-        """Initiator for two layer model.
-        
+        """Initiate two layer model.
+
         Args:
             q2x (float): Forcing for CO2 doubling.
             t2x (float): Equilibrium warming for CO2 doubling (ECS).
-            lamg (float): Global mean feedback parameter. If both t2x and 
+            lamg (float): Global mean feedback parameter. If both t2x and
                 lamg are input, t2x takes precedence and lamg estimated from
                 q2x/t2x.
             cmix (float): Heat capacity of ocean mixed layer from Geoffroy
-                et al., 2013, Transient Climate Response in a Two-Layer 
-                Energy-Balance Model. Part II: Representation of the 
-                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5 
-                AOGCMs 
+                et al., 2013, Transient Climate Response in a Two-Layer
+                Energy-Balance Model. Part II: Representation of the
+                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
+                AOGCMs
                 https://journals.ametsoc.org/doi/pdf/10.1175/JCLI-D-12-00196.1
             cdeep (float): Heat capacity of deep ocean layer [units?] from
                 Geoffroy et al., 2013, Part II.
-            gamma_2l (float): Heat exchange coefficient between upper and 
+            gamma_2l (float): Heat exchange coefficient between upper and
                 deep layer [units?] from Geoffroy et al., 2013, Part II.
-            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013, 
-                Part II. 
+            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013,
+                Part II.
             extforce (numpy.ndarray): Array of radiative forcing
-            exttime (numpy.ndarray): Array of times, should be equal in 
+            exttime (numpy.ndarray): Array of times, should be equal in
                 length to extforce
             tbeg (float): Start time for simulation (year)
             tend (float): End time for simulation (year)
@@ -73,7 +99,6 @@ class TwoLayerModel:
             scm_in (scmpy2l.Results): allows simple model to be re-run with
                 parameters from an existing run, rather than defaults.
         """
-
         # First update params with defaults
         self.params = self.default.copy()
 
@@ -97,15 +122,15 @@ class TwoLayerModel:
         self.params["cdeep_p"] = self.params["cdeep"] * self.params["eff"]
         self.params["gamma_p"] = self.params["gamma_2l"] * self.params["eff"]
 
-        g1 = (self.params["lamg"] + self.params["gamma_p"]) / self.params["cmix"]
-        g2 = self.params["gamma_p"] / self.params["cdeep_p"]
-        g = g1 + g2
-        gstar = g1 - g2
+        g_1 = (self.params["lamg"] + self.params["gamma_p"]) / self.params["cmix"]
+        g_2 = self.params["gamma_p"] / self.params["cdeep_p"]
+        gtotal = g_1 + g_2
+        gstar = g_1 - g_2
         delsqrt = numpy.sqrt(
-            g * g - 4.0 * g2 * self.params["lamg"] / self.params["cmix"]
+            gtotal * gtotal - 4.0 * g_2 * self.params["lamg"] / self.params["cmix"]
         )
-        afast = (g + delsqrt) / 2.0
-        aslow = (g - delsqrt) / 2.0
+        afast = (gtotal + delsqrt) / 2.0
+        aslow = (gtotal - delsqrt) / 2.0
         amix_f = 0.5 * (gstar + delsqrt) / (self.params["cmix"] * delsqrt)
         amix_s = -0.5 * (gstar - delsqrt) / (self.params["cmix"] * delsqrt)
         adeep_f = -self.params["gamma_p"] / (
@@ -120,43 +145,23 @@ class TwoLayerModel:
         self.params["adeep_f"] = adeep_f
         self.params["adeep_s"] = adeep_s
 
-    def run(self, **kwargs):
-        """Runs the two-layer model."""
-
-        #        self.params.update(kwargs) # is this necessary?
+    def run(self):  # pylint: disable=too-many-locals
+        """Run the two-layer model."""
         tbeg = self.params["tbeg"]
         tend = self.params["tend"]
-        dt = self.params["dt"]
-        q2x = self.params["q2x"]
+        timestep = self.params["dt"]  # pylint: disable=invalid-name
         extforce = self.params["extforce"]
-        exttime = self.params["exttime"]
         outtime = self.params["outtime"]
-        cmix = self.params["cmix"]
-        cdeep = self.params["cdeep"]
-        afast = self.params["afast"]
-        aslow = self.params["aslow"]
-        amix_f = self.params["amix_f"]
-        amix_s = self.params["amix_s"]
-        adeep_f = self.params["adeep_f"]
-        adeep_s = self.params["adeep_s"]
 
-        nlev1 = 2  # TODO: make keyword
+        nlev1 = 2  # TODO: make arbitrary
 
-        time = numpy.arange(tbeg, tend + dt, dt)
+        time = numpy.arange(tbeg, tend + timestep, timestep)
         time[-1] = tend  # reset last to tend (possible float diff)
         ntime = len(time)
 
         # TODO: more general type and error checking
         input_type_check(extforce, "extforce")
-        # if extforce is not None and isinstance(extforce, numpy.ndarray):
-        #    if extforce[0] is None:
-        #        raise AssertionError('extforce[0] is None')
-        # else:
-        #   raise AssertionError('extforce not instance of numpy.ndarray')
 
-        tg = numpy.zeros(ntime)
-        tl = numpy.zeros(ntime)
-        to = numpy.zeros(ntime)
         ohc = numpy.zeros(ntime)
         hflux = numpy.zeros(ntime)
         qtot = numpy.zeros(ntime)
@@ -167,8 +172,10 @@ class TwoLayerModel:
 
         try:
             qext = numpy.interp(time, self.exttime, self.extforce)
-        except:
-            raise AssertionError("Cannot interpolate numpy arrays (exttime,extforce)")
+        except Exception as exc:
+            raise AssertionError(
+                "Cannot interpolate numpy arrays (exttime,extforce)"
+            ) from exc
 
         # Initialize twolayer model
         twolayer = TwoLayer(
@@ -197,7 +204,7 @@ class TwoLayerModel:
                 del_ohc,
                 lam_eff1,
             ) = twolayer.update(
-                dt, temp_mix[i - 1, :], temp_deep[i - 1, :], qtot[i - 1], qtot[i]
+                timestep, temp_mix[i - 1, :], temp_deep[i - 1, :], qtot[i - 1], qtot[i]
             )
 
             # Sum fast and slow components
@@ -209,7 +216,7 @@ class TwoLayerModel:
 
         lam_eff[0] = lam_eff[1]
 
-        if not outtime is None:
+        if outtime is not None:
             ohc = interp1d(time, ohc)(outtime)
             hflux = interp1d(time, hflux)(outtime)
             qtot = interp1d(time, qtot)(outtime)
@@ -230,47 +237,51 @@ class TwoLayerModel:
         return results
 
 
-class Results(object):
+# TODO: do we need this at all?
+class Results:
     """Results of simple climate model."""
 
     def __init__(self, **kwargs):
+        """Results initiator."""
         self.__dict__.update(kwargs)
 
     def keys(self):
+        """Return keys."""
         return self.__dict__.keys()
 
     def __str__(self):
+        """Return string representation."""
         return repr(self)
 
     def __repr__(self):
-        s = str(self.__class__).split(self.__module__)[1]
-        if s[0] == ".":
-            s = s[1:]
-        if s[-1] == ">":
-            s = s[:-1]
-        if s[-1] == "'":
-            s = s[:-1]
+        """I don't even know what this does."""
+        string = str(self.__class__).split(self.__module__)[1]
+        if string[0] == ".":
+            string = string[1:]
+        if string[-1] == ">":
+            string = string[:-1]
+        if string[-1] == "'":
+            string = string[:-1]
         attr = [a for a in dir(self) if a[0] != "_"]
-        ans = s + ", public attributes: " + str(attr)
+        ans = string + ", public attributes: " + str(attr)
         return ans
 
 
 def set_feedback(lamg=None, t2x=None, q2x=None):
-    """Sets climate feedback parameter.
-    
+    """Set climate feedback parameter.
+
     Set lamg and/or t2x (ecs). If both are input, t2x takes precedence and
     lamg is over-written.
-    
-    Args:
+
+    Inputs:
         lamg (float): global climate feedback parameter (W m-2 K-1).
         t2x (float): equilibrium temperature for a doubling of CO2 (K).
         q2x (float): effective radiative forcing for a doubling of CO2 (W m-2).
-        
+
     Returns:
         t2x (float)
         lamg (float)
     """
-
     if t2x is not None:
         lamg = q2x / t2x
     else:
@@ -278,10 +289,9 @@ def set_feedback(lamg=None, t2x=None, q2x=None):
     return t2x, lamg
 
 
-class TwoLayer(object):
-    """
-    Two Layer model.
-    """
+# TODO: maybe rejig and stop pylint crying
+class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attributes
+    """Two Layer model."""
 
     default = {
         "lamg": 1.18,
@@ -291,45 +301,45 @@ class TwoLayer(object):
         "eff": 1.28,
     }
 
-    def __init__(self, **kwargs):
-        """Initiator for TwoLayer model.
-        
+    def __init__(self, **kwargs):  # pylint: disable=too-many-locals
+        """Initiate TwoLayer model.
+
         Args:
-            lamg (float): Global mean feedback parameter. If both t2x and 
+            lamg (float): Global mean feedback parameter. If both t2x and
                 lamg are input, t2x takes precedence and lamg estimated from
                 q2x/t2x.
             cmix (float): Heat capacity of ocean mixed layer from Geoffroy
-                et al., 2013, Transient Climate Response in a Two-Layer 
-                Energy-Balance Model. Part II: Representation of the 
-                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5 
-                AOGCMs 
+                et al., 2013, Transient Climate Response in a Two-Layer
+                Energy-Balance Model. Part II: Representation of the
+                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
+                AOGCMs
                 https://journals.ametsoc.org/doi/pdf/10.1175/JCLI-D-12-00196.1
             cdeep (float): Heat capacity of deep ocean layer [units?] from
                 Geoffroy et al., 2013, Part II.
-            gamma_2l (float): Heat exchange coefficient between upper and 
+            gamma_2l (float): Heat exchange coefficient between upper and
                 deep layer [units?] from Geoffroy et al., 2013, Part II.
-            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013, 
+            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013,
                 Part II.
         """
-
         self.params = self.default.copy()
         self.params.update(kwargs)
 
         # care with unit handling
         self.ntoa2joule = 4 * math.pi * EARTHRADIUS * EARTHRADIUS * SECPERYEAR * 1e-22
-        # self.ntoa2joule = 1.6097567742221404    #same as above
 
         # Define derived constants
         cdeep_p = self.params["cdeep"] * self.params["eff"]
         gamma_p = self.params["gamma"] * self.params["eff"]
-        g1 = (self.params["lamg"] + gamma_p) / self.params["cmix"]
-        g2 = gamma_p / cdeep_p
-        g = g1 + g2
-        gstar = g1 - g2
-        delsqrt = numpy.sqrt(g * g - 4 * g2 * self.params["lamg"] / self.params["cmix"])
-        afast = (g + delsqrt) / 2.0
-        aslow = (g - delsqrt) / 2.0
-        cc = 0.5 / (self.params["cmix"] * delsqrt)
+        g_1 = (self.params["lamg"] + gamma_p) / self.params["cmix"]
+        g_2 = gamma_p / cdeep_p
+        gtotal = g_1 + g_2
+        gstar = g_1 - g_2
+        delsqrt = numpy.sqrt(
+            gtotal * gtotal - 4 * g_2 * self.params["lamg"] / self.params["cmix"]
+        )
+        afast = (gtotal + delsqrt) / 2.0
+        aslow = (gtotal - delsqrt) / 2.0
+        cc = 0.5 / (self.params["cmix"] * delsqrt)  # pylint: disable=invalid-name
         amix_f = cc * (gstar + delsqrt)
         amix_s = -cc * (gstar - delsqrt)
         adeep_f = -gamma_p / (self.params["cmix"] * cdeep_p * delsqrt)
@@ -345,7 +355,7 @@ class TwoLayer(object):
             }
         )
         for k in self.params.keys():
-            if self.params[k] == None:
+            if self.params[k] is None:
                 if k in self.default:
                     self.params[k] = self.default[k]
         self.afast = afast
@@ -355,16 +365,18 @@ class TwoLayer(object):
         self.adeep_f = adeep_f
         self.adeep_s = adeep_s
 
-    def update(self, dt, temp_mix0, temp_deep0, forc0, forc1):
-        """Updates two-layer model each timestep.
-        
-        Args:
-            dt (float): Model timestep (yr).
+    def update(
+        self, timestep, temp_mix0, temp_deep0, forc0, forc1
+    ):  # pylint: disable=too-many-arguments,too-many-locals
+        """Update two-layer model each timestep.
+
+        Inputs:
+            timestep (float): Model timestep (yr).
             temp_mix0 (float): Temperature of mixed layer at last timestep (K)
             temp_deep0 (float): Temperature of deep ocean at last timestep (K)
             forc0 (float): effective radiative forcing at last timestep (W m-2)
             forc1 (float): effective radiative forcing this timestep (W m-2)
-        
+
         Returns:
             temp_mix1 (float): Temperature of mixed layer this timestep (K)
             temp_deep1 (float): Temperature of deep ocean this timestep (K)
@@ -373,9 +385,8 @@ class TwoLayer(object):
             lam_eff (float): Effective climate feedback parameter this timestep
                 (W m-2 K-1)
         """
-
-        adf = 1.0 / (self.afast * dt)
-        ads = 1.0 / (self.aslow * dt)
+        adf = 1.0 / (self.afast * timestep)
+        ads = 1.0 / (self.aslow * timestep)
 
         exp_f = numpy.exp(-1.0 / adf)
         exp_s = numpy.exp(-1.0 / ads)
@@ -409,7 +420,7 @@ class TwoLayer(object):
             temp_mix1.sum() - temp_mix0.sum()
         ) + self.params["cdeep"] * (temp_deep1.sum() - temp_deep0.sum())
 
-        heatflux = c_dtemp / dt
+        heatflux = c_dtemp / timestep
         del_ohc = self.ntoa2joule * c_dtemp
 
         faclameff = (self.params["eff"] - 1.0) * self.params["gamma"]
@@ -425,7 +436,7 @@ class TwoLayer(object):
 
 
 def input_type_check(inp, name):
+    """Check that input is convertible to a numpy array."""
     if isinstance(inp, (list, pandas.core.series.Series, numpy.ndarray)):
         return
-    else:
-        raise ValueError(name + " should be convertible to a 1D numpy array")
+    raise ValueError(name + " should be convertible to a 1D numpy array")
