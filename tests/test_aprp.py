@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from climateforcing.aprp import aprp, cloud_radiative_effect, create_input
+from climateforcing.geometry import global_mean
 
 
 def test_cloud_radiative_effect_raises():
@@ -18,13 +19,7 @@ def test_aprp_raises():
         aprp(base, pert)
     with pytest.raises(ValueError):
         aprp(base, pert, longwave=True)
-    # check non-3d input fails, though do we actually want to require this?
     varlist = ["rsdt", "rsus", "rsds", "clt", "rsdscs", "rsuscs", "rsut", "rsutcs"]
-    for var in varlist:
-        base[var] = np.zeros(1)
-        pert[var] = np.zeros(1)
-    with pytest.raises(ValueError):
-        aprp(base, pert)
     # check different shape input fails
     for var in varlist:
         base[var] = np.zeros((1, 1, 1))
@@ -32,14 +27,6 @@ def test_aprp_raises():
     base["rsdscs"] = np.zeros((8, 1, 1))
     with pytest.raises(ValueError):
         aprp(base, pert)
-    # check globalmean and lat have correct specification
-    for var in varlist:
-        base[var] = np.zeros((1, 1, 1))
-        pert[var] = np.zeros((1, 1, 1))
-    with pytest.raises(ValueError):
-        aprp(base, pert, globalmean=True)
-    with pytest.raises(ValueError):
-        aprp(base, pert, globalmean=True, lat=np.array([-45, 45]))
 
 
 # TODO: throw error for invalid values
@@ -84,15 +71,7 @@ def test_aprp_access_esm1_5():
     BASEDIR = "tests/testdata/ACCESS-ESM1-5/piClim-control/"
     PERTDIR = "tests/testdata/ACCESS-ESM1-5/piClim-aer/"
     base, pert, lat = create_input(BASEDIR, PERTDIR, longwave=True, latout=True)
-    result = aprp(base, pert, lat=lat, longwave=True, globalmean=True)
-    for key, value in result.items():
-        assert np.allclose(value, EXPECTED_RESULT[key])
-    # repeat, swapping order of the latitude dimension
-    base, pert, lat = create_input(BASEDIR, PERTDIR, longwave=True, latout=True)
-    for key in base:
-        base[key] = base[key][:, ::-1, :]
-        pert[key] = pert[key][:, ::-1, :]
-    lat = lat[::-1]
-    result = aprp(base, pert, lat=lat, longwave=True, globalmean=True)
-    for key, value in result.items():
-        assert np.allclose(value, EXPECTED_RESULT[key])
+    result_3d = aprp(base, pert, longwave=True)
+    for key, value in result_3d.items():
+        result_1d = global_mean(value, lat=lat, axis=1)
+        assert np.allclose(result_1d, EXPECTED_RESULT[key])

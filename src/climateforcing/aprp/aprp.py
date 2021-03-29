@@ -46,14 +46,7 @@ def cloud_radiative_effect(base, pert):
 
 
 def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: E501
-    base,
-    pert,
-    longwave=False,
-    breakdown=False,
-    globalmean=False,
-    lat=None,
-    cs_threshold=0.02,
-    clt_percent=True,
+    base, pert, longwave=False, breakdown=False, cs_threshold=0.02, clt_percent=True,
 ):
     """Approximate Partial Raditive Perturbation calculation.
 
@@ -86,11 +79,6 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
         breakdown : bool
             provide the forward and reverse calculations of APRP in the output, along
             with the central difference (the mean of forward and reverse)
-        globalmean : bool
-            provide global mean outputs (requires valid value for `lat`)
-        lat : None or `numpy.ndarray`
-            latitudes corresponding to axis numbered 1. Only required if globalmean
-            is True.
         cs_threshold : float
             minimum cloud fraction (0-1 scale) for calculation of cloudy-sky APRP. If
             either perturbed or control run cloud fraction is below this, set the APRP
@@ -171,11 +159,6 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
         for check_var in check_vars:
             if check_var not in var_dict.keys():
                 raise ValueError("%s not present in %s" % (check_var, var_dict))
-            if var_dict[check_var].ndim != 3:
-                raise ValueError(
-                    "%s in %s has %d dimensions (should be 3)"
-                    % (check_var, var_dict, var_dict[check_var].ndim)
-                )
             # if we get to here, rsdt exists, so verify all diagnostics have same shape
             if var_dict[check_var].shape != var_dict["rsdt"].shape:
                 raise ValueError(
@@ -191,15 +174,6 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
         # rescale cloud fraction to 0-1 if necessary
         if clt_percent:
             var_dict["clt"] = var_dict["clt"] / 100
-
-    # require lat for globalmean
-    if globalmean:
-        if lat is None:
-            raise ValueError("`lat` must be specified for `globalmean=True`")
-        if len(lat) != base["rsdt"].shape[1]:
-            raise ValueError(
-                "`lat` must be the same length as axis 1 of input variables"
-            )
 
     # the catch_warnings stops divide by zeros being flagged
     # we might want to flag these after all and give user the option to disable
@@ -524,23 +498,6 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
         reverse["ERFariLW"] = np.copy(central["ERFariLW"])
         forward["ERFaciLW"] = np.copy(central["ERFaciLW"])
         reverse["ERFaciLW"] = np.copy(central["ERFaciLW"])
-
-    if globalmean:
-        # is latitude ascending or descending?
-        if lat[0] < lat[-1]:
-            latbounds = np.concatenate(([-90], 0.5 * (lat[1:] + lat[:-1]), [90]))
-            weights = np.diff(np.sin(np.radians(latbounds)))[None, :, None] * np.ones(
-                (base["rsdt"].shape[0], 1, base["rsdt"].shape[2])
-            )
-        else:
-            latbounds = np.concatenate(([90], 0.5 * (lat[1:] + lat[:-1]), [-90]))
-            weights = -np.diff(np.sin(np.radians(latbounds)))[None, :, None] * np.ones(
-                (base["rsdt"].shape[0], 1, base["rsdt"].shape[2])
-            )
-        for key in central:
-            central[key] = np.average(central[key], weights=weights)
-            forward[key] = np.average(forward[key], weights=weights)
-            reverse[key] = np.average(reverse[key], weights=weights)
 
     if breakdown:
         return central, forward, reverse
