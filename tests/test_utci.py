@@ -1,6 +1,7 @@
 import numbers
 
 import numpy as np
+import pytest
 
 from climateforcing.utci import (
     mean_radiant_temperature,
@@ -31,6 +32,11 @@ def test_utci_scalar():
     TEST_RESULT = utci(295, 303, 6, 100)
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
     assert isinstance(TEST_RESULT, numbers.Number)
+
+
+def test_utci_raises():
+    with pytest.raises(ValueError):
+        utci(295, 296, 6, 100, humidity_type='wet')
 
 
 def test_ssh_array():
@@ -78,6 +84,11 @@ def test_mrt_scalar():
     TEST_RESULT = mean_radiant_temperature(150, 350, 400, 100, 700, cos_zenith=0.5)
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
     assert isinstance(TEST_RESULT, numbers.Number)
+
+
+def test_mrt_direct_exposed():
+    # TODO: test output
+    mean_radiant_temperature(150, 350, 400, 100, 700, cos_zenith=0.5, direct_exposed=0.7)
 
 
 def test_integration_array():
