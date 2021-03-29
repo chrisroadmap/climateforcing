@@ -3,7 +3,7 @@
 CAUTION: after the refactoring these have not been tested.
 """
 
-from numpy import exp, ma, maximum
+from numpy import exp, maximum
 
 # TODO: Alduchov and Eskridge (1996) reference
 
@@ -60,7 +60,7 @@ def relative_to_specific(
     A=17.625,
     B=-30.11,
     C=610.94,
-    rh_percent=False
+    rh_percent=False,
 ):  # pylint: disable=invalid-name,too-many-arguments
     """Convert relative humidity to specific humidity.
 
@@ -82,7 +82,7 @@ def relative_to_specific(
         specific_humidity: specific humidity (kg/kg)
     """
     if rh_percent:
-        relative_humidity = (relative_humidity / 100)
+        relative_humidity = relative_humidity / 100
     saturation_vapour_pressure = C * exp(
         A * (air_temperature - 273.15) / (B + air_temperature)
     )

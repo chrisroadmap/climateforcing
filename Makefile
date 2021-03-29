@@ -29,7 +29,7 @@ checks: $(VENV_DIR)  ## run all the checks
 		echo "\n\n=== pydocstyle ==="; $(VENV_DIR)/bin/pydocstyle src || echo "--- pydocstyle failed ---" >&2; \
 		echo "\n\n=== pylint ==="; $(VENV_DIR)/bin/pylint src || echo "--- pylint failed ---" >&2; \
 		echo "\n\n=== tests ==="; $(VENV_DIR)/bin/pytest tests -r a --cov=climateforcing --cov-report='' \
-			&& $(VENV_DIR)/bin/coverage report --fail-under=95 || echo "--- tests failed ---" >&2; \
+			&& $(VENV_DIR)/bin/coverage report --fail-under=90 || echo "--- tests failed ---" >&2; \
 		echo
 
 .PHONY: format

@@ -36,7 +36,7 @@ def test_utci_scalar():
 
 def test_utci_raises():
     with pytest.raises(ValueError):
-        utci(295, 296, 6, 100, humidity_type='wet')
+        utci(295, 296, 6, 100, humidity_type="wet")
 
 
 def test_ssh_array():
@@ -88,7 +88,9 @@ def test_mrt_scalar():
 
 def test_mrt_direct_exposed():
     # TODO: test output
-    mean_radiant_temperature(150, 350, 400, 100, 700, cos_zenith=0.5, direct_exposed=0.7)
+    mean_radiant_temperature(
+        150, 350, 400, 100, 700, cos_zenith=0.5, direct_exposed=0.7
+    )
 
 
 def test_integration_array():
