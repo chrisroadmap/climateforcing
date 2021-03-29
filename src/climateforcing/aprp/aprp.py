@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 from netCDF4 import Dataset
 
-# TODO: allow scalar and non-3D arrays in the input
 # TODO: docstrings for non-APRP functions
 # TODO: sort out refactoring for main aprp function
 
@@ -45,7 +44,7 @@ def cloud_radiative_effect(base, pert):
     return erfari_lw, erfaci_lw
 
 
-def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: E501
+def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements  # noqa: E501
     base, pert, longwave=False, breakdown=False, cs_threshold=0.02, clt_percent=True,
 ):
     """Approximate Partial Raditive Perturbation calculation.
@@ -89,9 +88,8 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
             is cloud fraction from base and pert in percent (True) or 0-1 scale
             (False)
 
-    Both `base` and `pert` are `dict`s containing CMIP-style variables. They should be
-    3-dimensional arrays in (time, latitude, longitude) format. The following items are
-    required. CMIP variable naming conventions are used.
+    Both `base` and `pert` are `dict`s containing CMIP-style variables and can be
+    scalars or arrays. CMIP variable naming conventions are used.
 
         rsdt    : TOA incoming shortwave flux (W m-2)
         rsus    : surface upwelling shortwave flux (W m-2)
@@ -111,7 +109,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branche
         central[, forward, reverse] : dict(s)
             Components of APRP as defined by equation A2 of Zelinka et al., 2014
 
-            dict elements are 't1', 't2', ..., 't9' where t? is the
+            dict elements are 't1', 't2', ..., 't9' where tX is the
             corresponding term in A2.
 
             't2_clr' and 't3_clr' are also provided, being hypothetical clear sky
