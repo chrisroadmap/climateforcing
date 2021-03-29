@@ -75,3 +75,25 @@ def test_aprp_access_esm1_5():
     for key, value in result_3d.items():
         result_1d = global_mean(value, lat=lat, axis=1)
         assert np.allclose(result_1d, EXPECTED_RESULT[key])
+    # should use conftest and this should be a separate test
+    central, forward, reverse = aprp(base, pert, longwave=True, breakdown=True)
+    for key in central:
+        assert ~np.allclose(central[key], forward[key])
+        assert ~np.allclose(forward[key], reverse[key])
+        assert ~np.allclose(reverse[key], central[key])
+
+
+def test_create_input_slice():
+    BASEDIR = "tests/testdata/ACCESS-ESM1-5/piClim-control/"
+    PERTDIR = "tests/testdata/ACCESS-ESM1-5/piClim-aer/"
+    base1, pert1 = create_input(BASEDIR, PERTDIR)
+    base2, pert2 = create_input(BASEDIR, PERTDIR, slc=slice(0, 1, None))
+    for key in base1:
+        assert ~np.allclose(base1[key], base2[key])
+
+
+def test_create_input_raises():
+    BASEDIR = ""
+    PERTDIR = ""
+    with pytest.raises(RuntimeError):  # should be custom class
+        base1, pert1 = create_input(BASEDIR, PERTDIR)

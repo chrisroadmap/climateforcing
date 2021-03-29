@@ -548,36 +548,29 @@ def create_input(
     else:
         varlist = ["rsdt", "rsus", "rsds", "clt", "rsdscs", "rsuscs", "rsut", "rsutcs"]
 
+    def _extract_files(filenames, var, directory):
+        if len(filenames) == 0:
+            raise RuntimeError(
+                "No variables of name %s found in directory %s" % (var, directory)
+            )
+        for i, filename in enumerate(filenames):
+            ncfile = Dataset(filename)
+            invar = ncfile.variables[var][slc, ...]
+            lat = ncfile.variables["lat"][:]
+            ncfile.close()
+            if i == 0:
+                outvar = invar
+            else:
+                # This works for me with CMIP6 netcdfs, but we don't have a small
+                # example to test with
+                outvar = np.append(outvar, invar, axis=0)  # pragma: nocover
+        return outvar, lat
+
     for var in varlist:
         filenames = sorted(glob.glob("%s/%s_*.nc" % (basedir, var)))
-        if len(filenames) == 0:
-            raise RuntimeError(
-                "No variables of name %s found in directory %s" % (var, basedir)
-            )
-        for i, filename in enumerate(filenames):
-            ncfile = Dataset(filename)
-            invar = ncfile.variables[var][slc, ...]
-            lat = ncfile.variables["lat"][:]
-            ncfile.close()
-            if i == 0:
-                base[var] = invar
-            else:
-                base[var] = np.append(base[var], invar, axis=0)
-
+        base[var], lat = _extract_files(filenames, var, basedir)
         filenames = sorted(glob.glob("%s/%s_*.nc" % (pertdir, var)))
-        if len(filenames) == 0:
-            raise RuntimeError(
-                "No variables of name %s found in directory %s" % (var, pertdir)
-            )
-        for i, filename in enumerate(filenames):
-            ncfile = Dataset(filename)
-            invar = ncfile.variables[var][slc, ...]
-            lat = ncfile.variables["lat"][:]
-            ncfile.close()
-            if i == 0:
-                pert[var] = invar
-            else:
-                pert[var] = np.append(pert[var], invar, axis=0)
+        pert[var], lat = _extract_files(filenames, var, pertdir)
 
     if latout:
         return base, pert, lat
