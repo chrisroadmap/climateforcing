@@ -4,5 +4,5 @@ source = climateforcing
 omit = *_version.py
 
 [report]
-fail_under = 95
+fail_under = 90
 ignore_errors = True

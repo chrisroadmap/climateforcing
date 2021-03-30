@@ -12,3 +12,6 @@ dist/
 
 # Unit test / coverage reports
 .coverage
+
+# Virtual environment directory
+.venv/

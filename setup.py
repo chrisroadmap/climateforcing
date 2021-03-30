@@ -1,7 +1,6 @@
 import os.path
 
 from setuptools import find_packages, setup
-from setuptools.command.test import test as TestCommand
 
 import versioneer
 
@@ -16,12 +15,7 @@ README = "README.rst"
 
 SOURCE_DIR = "src"
 
-REQUIREMENTS = [
-    "numpy",
-    "netCDF4",
-    "pandas",
-    "scipy"
-]
+REQUIREMENTS = ["numpy", "netCDF4", "pandas", "scipy"]
 REQUIREMENTS_TESTS = [
     "codecov",
     "coverage",
@@ -32,7 +26,6 @@ REQUIREMENTS_DEPLOY = ["twine>=1.11.0", "setuptools>=41.2", "wheel>=0.31.0"]
 
 REQUIREMENTS_DEV = [
     *[
-        "bandit",
         "black==19.10b0",
         "flake8",
         "isort>5",
@@ -77,6 +70,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     keywords=["climate", "tools"],
     packages=PACKAGES,
