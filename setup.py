@@ -1,5 +1,3 @@
-import os.path
-
 from setuptools import find_packages, setup
 
 import versioneer
@@ -15,7 +13,7 @@ README = "README.rst"
 
 SOURCE_DIR = "src"
 
-REQUIREMENTS = ["numpy", "netCDF4", "pandas", "scipy"]
+REQUIREMENTS = ["numpy", "netCDF4", "pandas", "scipy", "tqdm"]
 REQUIREMENTS_TESTS = [
     "codecov",
     "coverage",
@@ -46,7 +44,6 @@ REQUIREMENTS_EXTRAS = {
 # no tests/docs in `src` so don't need exclude
 PACKAGES = find_packages(SOURCE_DIR)
 PACKAGE_DIR = {"": SOURCE_DIR}
-PACKAGE_DATA = {"openscm_runner": [os.path.join("adapters", "fair_adapter", "*.csv")]}
 
 # Get the long description from the README file
 with open("README.rst", "r") as fh:
@@ -75,7 +72,6 @@ setup(
     keywords=["climate", "tools"],
     packages=PACKAGES,
     package_dir=PACKAGE_DIR,
-    package_data=PACKAGE_DATA,
     include_package_data=True,
     install_requires=REQUIREMENTS,
     extras_require=REQUIREMENTS_EXTRAS,
