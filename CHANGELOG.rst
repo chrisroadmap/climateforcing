@@ -12,6 +12,7 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+- added: `utils` module (`#12 <https://github.com/chrisroadmap/climateforcing/pull/12>`_)
 - added: `geometry` module (`#10 <https://github.com/chrisroadmap/climateforcing/pull/10>`_)
 - removed: masked array keyword in `humidity` (`#10 <https://github.com/chrisroadmap/climateforcing/pull/10>`_)
 - fixed: wrong global mean latitude weighting in `aprp` (`#10 <https://github.com/chrisroadmap/climateforcing/pull/10>`_).
