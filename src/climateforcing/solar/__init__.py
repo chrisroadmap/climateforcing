@@ -57,8 +57,8 @@ to be the largest difference when compared to individual models.
 Use at your own risk, etc., etc.
 """
 
-from solar_position import (  # noqa: F401
+from .solar_position import (  # noqa: F401
     cos_mean_solar_zenith_angle,
     cos_solar_zenith_angle,
-    modified_julian_day,
+    modified_julian_date,
 )
