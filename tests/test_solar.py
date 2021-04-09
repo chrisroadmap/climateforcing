@@ -33,6 +33,7 @@ LONGITUDE_LEEDS = -1.3
 LATITUDE_GRID = np.arange(-90, 90.1, 5)
 LONGITUDE_GRID = np.arange(0, 360, 10)
 
+
 # Unit tests
 def test_modified_julian_date():
     assert np.allclose(modified_julian_date(TEST_TIME), TEST_JDATE)
