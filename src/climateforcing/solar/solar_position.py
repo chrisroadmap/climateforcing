@@ -281,15 +281,15 @@ def _check_and_expand_inputs(latitude, longitude):
     scalar_input = False
     latitude = np.asarray(latitude, dtype=float)
     longitude = np.asarray(longitude, dtype=float)
-    if latitude.ndim == 2 or longitude.ndim == 2:  # assume meshgrid
+    if latitude.ndim == 2 and longitude.ndim == 2:  # assume meshgrid
         if latitude.shape != longitude.shape:
             raise ValueError(
                 "For 2-dimensional input, latitude and longitude must be the same shape"
             )
-    elif latitude.ndim > 2 or longitude.ndim > 2:
+    elif (latitude.ndim > 2 or longitude.ndim > 2) or (latitude.ndim != longitude.ndim):
         raise ValueError(
-            "Latitude and longitude should be scalars, 1-dimensional or 2-dimensional"
-            "arrays"
+            "Latitude and longitude should both be scalars, 1-dimensional or "
+            "2-dimensional arrays"
         )
     elif latitude.ndim == 1 and longitude.ndim == 1:
         latitude, longitude = np.meshgrid(latitude, longitude)
