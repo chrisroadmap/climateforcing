@@ -39,6 +39,10 @@ def test_utci_raises():
         utci(295, 296, 6, 100, humidity_type="wet")
 
 
+def test_utci_specific_humidity():
+    utci(295, 296, 6, 0.005, humidity_type="specific")
+
+
 def test_ssh_array():
     EXPECTED_RESULT = np.array([1388.9644889401982, 3536.824257589194])
     TEST_RESULT = saturation_specific_humidity(np.array([285, 300]))
