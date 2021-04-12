@@ -403,6 +403,8 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
     hour_end = np.radians(
         _topocentric_local_hour_angle(julian_date_end, latitude, longitude)
     )
+    # sometimes because of periodicity hour_end < hour_start
+    hour_end[hour_end < hour_start] = hour_end[hour_end < hour_start] + 2 * np.pi
     dtrad = hour_end - hour_start
     cos_halfdaylength = (sin_latitude * sin_declination) / (
         cos_latitude * cos_declination
