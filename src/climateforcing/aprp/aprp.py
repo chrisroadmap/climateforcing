@@ -24,7 +24,7 @@ def cloud_radiative_effect(base, pert):
     ----------
     base, pert: dict of array_like
         CMIP diagnostics required to calculate longwave cloud radiative effect. The
-        dicts should contain two entries:
+        dicts should contain two keys:
 
         'rlut'    : top-of-atmosphere outgoing longwave flux
         'rlutcs'  : top-of-atmosphere longwave flux assuming clear sky
@@ -75,10 +75,28 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
 
     Parameters
     ----------
-        base : dict
-            baseline climate to use
-        pert : dict
-            perturbed climate to use
+        base, pert : dict of array_like
+            Baseline and perturbation climate states to use.
+
+            Both `base` and `pert` are dicts containing CMIP-style variables. CMIP
+            variable naming conventions are used. The dicts should contain the
+            following keys:
+
+            rsdt    : TOA incoming shortwave flux (W m-2)
+            rsus    : surface upwelling shortwave flux (W m-2)
+            rsds    : surface downwelling_shortwave flux (W m-2)
+            clt     : cloud area_fraction (fraction or %, see `clt_unit`)
+            rsdscs  : surface downwelling shortwave flux assuming clear sky (W m-2)
+            rsuscs  : surface upwelling shortwave flux assuming clear sky (W m-2)
+            rsut    : TOA outgoing shortwave flux (W m-2)
+            rsutcs  : TOA outgoing shortwave flux assuming clear sky (W m-2)
+
+            If the longwave calculation is also required, the following keys should
+            also be included:
+
+            rlut    : TOA outgoing longwave flux (W m-2)
+            rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
+
         longwave : bool
             calculate the longwave forcing, in addition to the shortwave.
         breakdown : bool
