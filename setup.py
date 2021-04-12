@@ -21,6 +21,7 @@ REQUIREMENTS_TESTS = [
     "pytest>=4.0",
 ]
 REQUIREMENTS_DEPLOY = ["twine>=1.11.0", "setuptools>=41.2", "wheel>=0.31.0"]
+REQUIREMENTS_DOCS = ["sphinx>=1.4"]
 
 REQUIREMENTS_DEV = [
     *[
@@ -32,12 +33,14 @@ REQUIREMENTS_DEV = [
         "readme-renderer",
     ],
     *REQUIREMENTS_DEPLOY,
+    *REQUIREMENTS_DOCS,
     *REQUIREMENTS_TESTS,
 ]
 
 REQUIREMENTS_EXTRAS = {
     "deploy": REQUIREMENTS_DEPLOY,
     "dev": REQUIREMENTS_DEV,
+    "docs": REQUIREMENTS_DOCS,
     "tests": REQUIREMENTS_TESTS,
 }
 
