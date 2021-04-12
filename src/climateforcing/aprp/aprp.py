@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 from netCDF4 import Dataset
 
-# TODO: docstrings for non-APRP functions
 # TODO: sort out refactoring for main aprp function
 
 
@@ -21,13 +20,19 @@ def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
 def cloud_radiative_effect(base, pert):
     """Calculate the cloud radiative effect intended for longwave fluxes.
 
-    Input:
-        base, pert: dicts of CMIP diagnostics required to calculate APRP:
-            'rlut'    : toa outgoing longwave flux
-            'rlutcs'  : toa outgoing longwave flux assuming clear sky
+    Parameters
+    ----------
+    base, pert: dict of array_like
+        CMIP diagnostics required to calculate longwave cloud radiative effect. The
+        dicts should contain two entries:
 
-    Output:
-        ERFariLW, ERFaciLW: arrays
+        'rlut'    : top-of-atmosphere outgoing longwave flux
+        'rlutcs'  : top-of-atmosphere longwave flux assuming clear sky
+
+    Returns
+    -------
+    erfari_lw, erfaci_lw : array_like
+        Longwave ERFari and ERFaci estimates.
     """
     # check all required diagnostics are present
     check_vars = ["rlut", "rlutcs"]
@@ -54,8 +59,8 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     separate the effective radiative forcing into aerosol-radiation (ERFari) and
     aerosol-cloud (ERFaci) components.
 
-    References:
-    -----------
+    References
+    ----------
     Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying
     components of aerosol‐cloud‐radiation interactions in climate models, J. Geophys.
     Res. Atmos., 119, 7599– 7615, https://doi.org/10.1002/2014JD021710.
@@ -68,7 +73,8 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     This implementation is a little different to Mark Zelinka's version at
     https://github.com/mzelinka/aprp.
 
-    Input:
+    Parameters
+    ----------
         base : dict
             baseline climate to use
         pert : dict
@@ -105,7 +111,8 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
         rlut    : TOA outgoing longwave flux (W m-2)
         rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
 
-    Returns:
+    Returns
+    -------
         central[, forward, reverse] : dict(s)
             Components of APRP as defined by equation A2 of Zelinka et al., 2014
 
