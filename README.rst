@@ -53,6 +53,11 @@ geometry: quick and dirty area-weighted mean
 For when you relly want to know the global mean but don't want to think or download anything much. (Works nicely with `aprp`).
 
 
+solar: time-mean solar zenith angle
+-----------------------------------
+Lots of tools exist for calculating the solar zenith angle. No tools exist, as far as I can see, for calculating the daylight-corrected mean solar zenith angle. Why do we want to do this? Sub-daily climate model data is often outputted only as hourly, 3-hourly or 6-hourly means, including for shortwave radiation diagnostics. Say you want to try and calculate the mean direct normal radiation over a 3-hour mean timestep, given the horizontal diffuse (rsdsdiff) and horizontal total (rsds). You will need an estimate of the mean solar zenith angle to do this.
+
+
 twolayermodel: two-layer energy balance climate model
 -----------------------------------------------------
 Implementation of the Held et al (2010) and Geoffroy et al (2013a, 2013b) two-layer climate model. Thanks to `Glen Harris <https://www.metoffice.gov.uk/research/people/glen-harris/>`_ for the original code.

@@ -12,6 +12,7 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+- added: `solar` module (`#14 <https://github.com/chrisroadmap/climateforcing/pull/14>`_)
 
 v0.1.1
 ------
