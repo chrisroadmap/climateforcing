@@ -21,7 +21,7 @@ REQUIREMENTS_TESTS = [
     "pytest>=4.0",
 ]
 REQUIREMENTS_DEPLOY = ["twine>=1.11.0", "setuptools>=41.2", "wheel>=0.31.0"]
-REQUIREMENTS_DOCS = ["sphinx>=1.4"]
+REQUIREMENTS_DOCS = ["sphinx>=1.4", "sphinx_rtd_theme"]
 
 REQUIREMENTS_DEV = [
     *[
