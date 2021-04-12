@@ -334,7 +334,7 @@ def cos_solar_zenith_angle(julian_date, latitude, longitude):
 
 
 # this would be very difficult to refactor
-def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
+def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals,too-many-statements
     julian_date_mean, time_delta_hours, latitude, longitude
 ):
     """Calculate the cosine of the time-mean solar zenith angle.
@@ -359,6 +359,8 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
         mean_cosz : float or `np.ndarray`
             cosine of mean zenith angle. Scalar if latitude and longitude are both
             scalars, otherwise 2D array.
+        lit : float or `np.ndarray`
+            sunlit fraction of grid point
     """
     # cases to consider:
     # 1. sun always above horizon: go from start to end of period
@@ -390,6 +392,7 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
     cos_declination = np.cos(np.radians(delta_prime))
 
     mean_cosz = np.zeros_like(latitude)
+    lit = np.zeros_like(latitude)
     hour_lower = np.zeros_like(latitude)
     hour_upper = np.zeros_like(latitude)
     halfdaylength = np.zeros_like(latitude)
@@ -405,7 +408,7 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
     )
     # sometimes because of periodicity hour_end < hour_start
     hour_end[hour_end < hour_start] = hour_end[hour_end < hour_start] + 2 * np.pi
-    dtrad = hour_end - hour_start
+    period = hour_end - hour_start
     cos_halfdaylength = (sin_latitude * sin_declination) / (
         cos_latitude * cos_declination
     )
@@ -413,11 +416,12 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
     # case 6b
     polar_night = cos_halfdaylength < -1
     mean_cosz[polar_night] = 0
+    lit[polar_night] = 0
 
     # case 1a
     polar_day = cos_halfdaylength > 1
     hour_lower[polar_day] = hour_start[polar_day]
-    hour_upper[polar_day] = hour_start[polar_day] + dtrad[polar_day]
+    hour_upper[polar_day] = hour_start[polar_day] + period[polar_day]
 
     # For other cases, shift to counting times from sunrise to avoid overlap effects
     nonpolar = (-1 < cos_halfdaylength) & (cos_halfdaylength < 1)
@@ -426,7 +430,7 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
         hour_start[nonpolar] + halfdaylength[nonpolar]
     ) % (2 * np.pi)
     hour_since_sunrise_end[nonpolar] = (
-        hour_since_sunrise_start[nonpolar] + dtrad[nonpolar]
+        hour_since_sunrise_start[nonpolar] + period[nonpolar]
     ) % (2 * np.pi)
     hour_sunset[nonpolar] = 2 * halfdaylength[nonpolar]
 
@@ -458,6 +462,7 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
         hour_since_sunrise_start > hour_sunset
     )
     mean_cosz[case6a] = 0
+    lit[case6a] = 0
 
     delta_sin = np.sin(hour_upper) - np.sin(hour_lower)
     delta_hour = hour_upper - hour_lower
@@ -478,7 +483,9 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals
         / delta_hour[nonpolar_daytime]
         + sin_latitude[nonpolar_daytime] * sin_declination[nonpolar_daytime]
     )
+    lit = delta_hour / period
+    lit[lit < 0] = 0
 
     if scalar_input:
-        return mean_cosz[0]
-    return mean_cosz
+        return mean_cosz[0], lit[0]
+    return mean_cosz, lit

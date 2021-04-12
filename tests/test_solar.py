@@ -147,13 +147,13 @@ def test_check_and_expand_inputs_raises():
 def test_cos_mean_solar_zenith_angle():
     assert np.allclose(
         cos_mean_solar_zenith_angle(TEST_JDATE, 3, LATITUDE_LEEDS, LONGITUDE_LEEDS),
-        0.5166443273767068,
+        (0.5166443273767068, 1),
     )
     with open("tests/testdata/solar/3hr_mean_cosz.pkl", "rb") as f:
-        mean_cosz = pickle.load(f)
+        mean_cosz, lit = pickle.load(f)
     assert np.allclose(
         cos_mean_solar_zenith_angle(TEST_JDATE, 3, LATITUDE_GRID, LONGITUDE_GRID),
-        mean_cosz,
+        (mean_cosz, lit),
     )
 
 
