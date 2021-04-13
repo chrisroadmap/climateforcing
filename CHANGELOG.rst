@@ -16,6 +16,7 @@ master
 v0.2.0
 ------
 - added: `solar` module (`#14 <https://github.com/chrisroadmap/climateforcing/pull/14>`_)
+- fixed: `SECPERYEAR` for `twolayermodel` now uses tropical year length of 365.24219 days instead of 365 (`#16 <https://github.com/chrisroadmap/climateforcing/pull/16>`_)
 - changed: all docstrings converted to numpy style (`#15 <https://github.com/chrisroadmap/climateforcing/pull/15>`_)
 
 v0.1.1
