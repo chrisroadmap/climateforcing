@@ -6,6 +6,9 @@
 climateforcing
 ==============
 
+.. automodule:: climateforcing.utci
+    :members:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
