@@ -13,8 +13,8 @@ class _DownloadProgressBar(tqdm):
     def update_to(self, blocks=1, blocksize=1, totalsize=None):
         """Update download progress bar.
 
-        Inputs
-        ------
+        Parameters
+        ----------
             blocks : int, optional
                 Number of blocks transferred so far [default: 1].
             blocksize : int, optional
@@ -30,13 +30,13 @@ class _DownloadProgressBar(tqdm):
 def check_and_download(url, filepath, clobber=False):
     """Check prescence of a file and downloads if not present.
 
-    Inputs
-    ------
-        url :
+    Parameters
+    ----------
+        url : str
             url to download from
         filepath : str
             filename to download to
-        clobber : bool
+        clobber : bool, default=False
             False if download should not overwrite existing file, True if it should
     """
     if clobber or not os.path.isfile(filepath):
@@ -52,8 +52,8 @@ def check_and_download(url, filepath, clobber=False):
 def mkdir_p(path):
     """Check to see if directory exists, and if not, create it.
 
-    Inputs
-    ------
+    Parameters
+    ----------
         path : str
             directory to create
 

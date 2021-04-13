@@ -1,32 +1,18 @@
 """Module for calculating the instantanous and time-mean solar zenith angle.
 
-Usage
------
+Example
+-------
 >>> import cftime
 >>> from climateforcing.solar.solar_position import modified_julian_date, \
-    cos_mean_solar_zenith
+    cos_mean_solar_zenith_angle
 >>> import numpy as np
-
 >>> jdate = modified_julian_date(cftime.datetime(2021, 4, 6, 14, 52))
 >>> latitude = np.arange(-90, 90.1, 5)
 >>> longitude = np.arange(0, 360, 10)
->>> cosz = cos_mean_solar_zenith(jdate, 3, latitude, longitude)
+>>> cosz, lit = cos_mean_solar_zenith_angle(jdate, 3, latitude, longitude)
 
 `modified_julian_date` also supports any calendar accepted by `cftime` and makes its
 best guess as to what the climate model intended.
-
-References
-----------
-[1] Reda, I. & Andreas, S. (2004), Solar position algorithm for solar radiation
-    applications, Solar Energy, 76, 577-589, doi.org/10.1016/j.solener.2003.12.003.
-
-[2] pysolar, https://github.com/pingswept/pysolar
-
-[3] Hogan, R. J., and Hirahara, S. (2016), Effect of solar zenith angle specification
-    in models on mean shortwave fluxes and stratospheric temperatures, Geophys. Res.
-    Lett., 43, 482-488, doi.org/10.1002/2015GL066868.
-
-[4] UK Met Office Documentation Paper 23
 
 Notes
 -----
@@ -55,6 +41,19 @@ this level of detail is not critical for climate model applications and is not l
 to be the largest difference when compared to individual models.
 
 Use at your own risk, etc., etc.
+
+References
+----------
+.. [1] Reda, I. & Andreas, S. (2004), Solar position algorithm for solar radiation
+    applications, Solar Energy, 76, 577-589, doi.org/10.1016/j.solener.2003.12.003.
+
+.. [2] pysolar, https://github.com/pingswept/pysolar
+
+.. [3] Hogan, R. J., and Hirahara, S. (2016), Effect of solar zenith angle specification
+    in models on mean shortwave fluxes and stratospheric temperatures, Geophys. Res.
+    Lett., 43, 482-488, doi.org/10.1002/2015GL066868.
+
+.. [4] UK Met Office Documentation Paper 23
 """
 
 from .solar_position import (  # noqa: F401

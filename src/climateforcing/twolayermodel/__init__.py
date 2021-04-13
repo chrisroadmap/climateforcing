@@ -3,27 +3,31 @@ Held/Geoffroy two-layer energy balance climate model.
 
 Adapted from a version originally provided by Glen Harris, UK Met Office.
 
-This implementation most closely follows Geoffroy Part II.
+This implementation most closely follows Geoffroy Part II [3]_.
 
-Held, I. M., Winton, M., Takahashi, K., Delworth, T., Zeng, F., & Vallis, G. K. (2010),
-Probing the Fast and Slow Components of Global Warming by Returning Abruptly to
-Preindustrial Forcing, J. Climate, 23(9), 2418–2427,
-https://doi.org/10.1175/2009JCLI3466.1
+References
+----------
+.. [1] Held, I. M., Winton, M., Takahashi, K., Delworth, T., Zeng, F., & Vallis, G. K.
+    (2010), Probing the Fast and Slow Components of Global Warming by Returning Abruptly
+    to Preindustrial Forcing, J. Climate, 23(9), 2418–2427,
+    https://doi.org/10.1175/2009JCLI3466.1
 
-Geoffroy, O., Saint-Martin, D., Olivié, D. J. L., Voldoire, A., Bellon, G., & Tytéca,
-S. (2013a). Transient Climate Response in a Two-Layer Energy-Balance Model. Part I:
-Analytical Solution and Parameter Calibration Using CMIP5 AOGCM Experiments, J.
-Climate, 26(6), 1841-1857, https://doi.org/10.1175/JCLI-D-12-00195.1
+.. [2] Geoffroy, O., Saint-Martin, D., Olivié, D. J. L., Voldoire, A., Bellon, G., &
+    Tytéca, S. (2013a). Transient Climate Response in a Two-Layer Energy-Balance
+    Model. Part I: Analytical Solution and Parameter Calibration Using CMIP5 AOGCM
+    Experiments, J. Climate, 26(6), 1841-1857,
+    https://doi.org/10.1175/JCLI-D-12-00195.1
 
-Geoffroy, O., Saint-Martin, D., Bellon, G., Voldoire, A., Olivié, D. J. L., & Tytéca,
-S. (2013b), Transient Climate Response in a Two-Layer Energy-Balance Model. Part II:
-Representation of the Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
-AOGCMs, J. Climate, 26(6), 1859-1876, https://doi.org/10.1175/JCLI-D-12-00196.1
+.. [3] Geoffroy, O., Saint-Martin, D., Bellon, G., Voldoire, A., Olivié, D. J. L., &
+    Tytéca, S. (2013b), Transient Climate Response in a Two-Layer Energy-Balance
+    Model. Part II: Representation of the Efficacy of Deep-Ocean Heat Uptake and
+    Validation for CMIP5 AOGCMs, J. Climate, 26(6), 1859-1876,
+    https://doi.org/10.1175/JCLI-D-12-00196.1
 
-Palmer, M. D., Harris, G. R. and Gregory, J. M. (2018), Extending CMIP5 projections of
-global mean temperature change and sea level rise due to the thermal expansion using a
-physically-based emulator, Environ. Res. Lett., 13(8), 084003,
-https://doi.org/10.1088/1748-9326/aad2e4
+.. [4] Palmer, M. D., Harris, G. R. and Gregory, J. M. (2018), Extending CMIP5
+    projections of global mean temperature change and sea level rise due to the thermal
+    expansion using a physically-based emulator, Environ. Res. Lett., 13(8), 084003,
+    https://doi.org/10.1088/1748-9326/aad2e4
 """
 
 import math
@@ -38,15 +42,17 @@ from ..constants import EARTHRADIUS, SECPERYEAR
 class TwoLayerModel:  # pylint: disable=too-few-public-methods
     """Defines the two-layer climate model.
 
-    Attributes:
-        default (dict): Default parameters for running the two-layer model.
-            Overwritten using **kwargs (see call to `__init__`)
-        extforce (numpy.ndarray): Effective radiative forcing with which to
-            run the model.
-        exttime (numpy.ndarray): Timesteps at which to calculate the effective
-            radiative forcing.
-        params (dict): Parameters for running the two-layer model. Includes
-            derived values.
+    Attributes
+    ----------
+        default : dict
+            Default parameters for running the two-layer model.
+            Overwritten using `**kwargs` (see call to `__init__`)
+        extforce : array_like
+            Effective radiative forcing with which to run the model.
+        exttime : array_like
+            Timesteps at which to calculate the effective radiative forcing.
+        params : dict
+            Parameters for running the two-layer model. Includes derived values.
     """
 
     default = {
@@ -69,35 +75,39 @@ class TwoLayerModel:  # pylint: disable=too-few-public-methods
     def __init__(self, **kwargs):
         """Initiate two layer model.
 
-        Args:
-            q2x (float): Forcing for CO2 doubling.
-            t2x (float): Equilibrium warming for CO2 doubling (ECS).
-            lamg (float): Global mean feedback parameter. If both t2x and
-                lamg are input, t2x takes precedence and lamg estimated from
-                q2x/t2x.
-            cmix (float): Heat capacity of ocean mixed layer from Geoffroy
-                et al., 2013, Transient Climate Response in a Two-Layer
-                Energy-Balance Model. Part II: Representation of the
-                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
-                AOGCMs
-                https://journals.ametsoc.org/doi/pdf/10.1175/JCLI-D-12-00196.1
-            cdeep (float): Heat capacity of deep ocean layer [units?] from
-                Geoffroy et al., 2013, Part II.
-            gamma_2l (float): Heat exchange coefficient between upper and
-                deep layer [units?] from Geoffroy et al., 2013, Part II.
-            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013,
-                Part II.
-            extforce (numpy.ndarray): Array of radiative forcing
-            exttime (numpy.ndarray): Array of times, should be equal in
-                length to extforce
-            tbeg (float): Start time for simulation (year)
-            tend (float): End time for simulation (year)
-            dt (float): Timestep (years)
-            outtime (np.ndarray or None): If set, the times (years) at which
-                output response is given. If not set, output every timestep
-                between tbeg and tend.
-            scm_in (scmpy2l.Results): allows simple model to be re-run with
-                parameters from an existing run, rather than defaults.
+        Parameters
+        ----------
+            q2x : float
+                Forcing for CO2 doubling, W m-2
+            t2x : float
+                Equilibrium warming for CO2 doubling (ECS), K
+            lamg : float
+                Global mean feedback parameter, W m-2 K-1. If both t2x and lamg are
+                input, t2x takes precedence and lamg estimated from q2x/t2x.
+            cmix : float
+                Heat capacity of ocean mixed layer, W m-2 K-1 yr
+            cdeep : float
+                Heat capacity of deep ocean layer, W m-2 K-1 yr
+            gamma_2l : float
+                Heat exchange coefficient between upper and deep layer, W m-2 K-1
+            eff : float
+                Efficacy of deep ocean.
+            extforce : array_like
+                Array of radiative forcing
+            exttime : array_like
+                Array of times, should be equal in length to extforce
+            tbeg : float
+                Start time for simulation (year)
+            tend : float
+                End time for simulation (year)
+            dt : float
+                Timestep (years)
+            outtime : array_like or None
+                If set, the times (years) at which output response is given. If not set,
+                output every timestep between tbeg and tend.
+            scm_in : obj:`scmpy2l.Results`
+                allows simple model to be re-run with parameters from an existing run,
+                rather than defaults.
         """
         # First update params with defaults
         self.params = self.default.copy()
@@ -273,14 +283,19 @@ def set_feedback(lamg=None, t2x=None, q2x=None):
     Set lamg and/or t2x (ecs). If both are input, t2x takes precedence and
     lamg is over-written.
 
-    Inputs:
-        lamg (float): global climate feedback parameter (W m-2 K-1).
-        t2x (float): equilibrium temperature for a doubling of CO2 (K).
-        q2x (float): effective radiative forcing for a doubling of CO2 (W m-2).
+    Parameters
+    ----------
+        lamg : float
+            Global climate feedback parameter (W m-2 K-1).
+        t2x : float
+             equilibrium temperature for a doubling of CO2 (K).
+        q2x : float
+            effective radiative forcing for a doubling of CO2 (W m-2).
 
-    Returns:
-        t2x (float)
-        lamg (float)
+    Returns
+    -------
+        t2x
+        lamg
     """
     if t2x is not None:
         lamg = q2x / t2x
@@ -304,22 +319,19 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
     def __init__(self, **kwargs):  # pylint: disable=too-many-locals
         """Initiate TwoLayer model.
 
-        Args:
-            lamg (float): Global mean feedback parameter. If both t2x and
-                lamg are input, t2x takes precedence and lamg estimated from
-                q2x/t2x.
-            cmix (float): Heat capacity of ocean mixed layer from Geoffroy
-                et al., 2013, Transient Climate Response in a Two-Layer
-                Energy-Balance Model. Part II: Representation of the
-                Efficacy of Deep-Ocean Heat Uptake and Validation for CMIP5
-                AOGCMs
-                https://journals.ametsoc.org/doi/pdf/10.1175/JCLI-D-12-00196.1
-            cdeep (float): Heat capacity of deep ocean layer [units?] from
-                Geoffroy et al., 2013, Part II.
-            gamma_2l (float): Heat exchange coefficient between upper and
-                deep layer [units?] from Geoffroy et al., 2013, Part II.
-            eff (float): Efficacy of deep ocean from Geoffroy et al., 2013,
-                Part II.
+        Parameters
+        ----------
+            lamg : float
+                Global mean feedback parameter, W m-2 K-1. If both t2x and lamg are
+                input, t2x takes precedence and lamg estimated from q2x/t2x.
+            cmix : float
+                Heat capacity of ocean mixed layer, W m-2 K-1 yr
+            cdeep : float
+                Heat capacity of deep ocean layer, W m-2 K-1 yr
+            gamma_2l : float
+                Heat exchange coefficient between upper and deep layer, W m-2 K-1
+            eff : float
+                Efficacy of deep ocean.
         """
         self.params = self.default.copy()
         self.params.update(kwargs)
@@ -370,20 +382,31 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
     ):  # pylint: disable=too-many-arguments,too-many-locals
         """Update two-layer model each timestep.
 
-        Inputs:
-            timestep (float): Model timestep (yr).
-            temp_mix0 (float): Temperature of mixed layer at last timestep (K)
-            temp_deep0 (float): Temperature of deep ocean at last timestep (K)
-            forc0 (float): effective radiative forcing at last timestep (W m-2)
-            forc1 (float): effective radiative forcing this timestep (W m-2)
+        Parameters
+        ----------
+            timestep : float
+                Model timestep (yr).
+            temp_mix0 : float
+                Temperature of mixed layer at last timestep (K)
+            temp_deep0 : float
+                Temperature of deep ocean at last timestep (K)
+            forc0 : float
+                Effective radiative forcing at last timestep (W m-2)
+            forc1 : float
+                Effective radiative forcing this timestep (W m-2)
 
-        Returns:
-            temp_mix1 (float): Temperature of mixed layer this timestep (K)
-            temp_deep1 (float): Temperature of deep ocean this timestep (K)
-            heatflux (float): Ocean heat flux this timestep (units?)
-            del_ohc (float): Change in ocean heat content this timestep (10*22J)
-            lam_eff (float): Effective climate feedback parameter this timestep
-                (W m-2 K-1)
+        Returns
+        -------
+            temp_mix1 : float
+                Temperature of mixed layer this timestep (K)
+            temp_deep1 : float
+                Temperature of deep ocean this timestep (K)
+            heatflux : float
+                Ocean heat flux this timestep (W m-2)
+            del_ohc : float
+                Change in ocean heat content this timestep (10**22J)
+            lam_eff : float
+                Effective climate feedback parameter this timestep (W m-2 K-1)
         """
         adf = 1.0 / (self.afast * timestep)
         ads = 1.0 / (self.aslow * timestep)
@@ -436,7 +459,20 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
 
 
 def input_type_check(inp, name):
-    """Check that input is convertible to a numpy array."""
+    """Check that input is convertible to a numpy array.
+
+    Parameters
+    ----------
+        inp : object
+            thing to check
+        name : str
+            name of variable
+
+    Raises
+    ------
+        ValueError
+            if the variable cannot be converted to a numpy array
+    """
     if isinstance(inp, (list, pandas.core.series.Series, numpy.ndarray)):
         return
     raise ValueError(name + " should be convertible to a 1D numpy array")

@@ -1,7 +1,7 @@
 """
 Calculate mean radiant temperature.
 
-Di Napoli, C., Hogan, R.J. & Pappenberger, F. Mean radiant temperature from
+.. [1] Di Napoli, C., Hogan, R.J. & Pappenberger, F. Mean radiant temperature from
 global-scale numerical weather prediction models. Int J Biometeorol 64, 1233–1245
 (2020). https://doi.org/10.1007/s00484-020-01900-5
 """
@@ -28,37 +28,40 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
 ):
     """Calculate the mean radiant temperature.
 
-    Inputs:
-        rlds : float
+    Parameters
+    ----------
+        rlds : array_like
             surface longwave downwelling radiation, W m-2
-        rlus : float
+        rlus : array_like
             surface longwave upwelling radiation, W m-2
-        rsdsdiff : float
+        rsdsdiff : array_like
             surface shortwave downwelling diffuse radiation, W m-2
-        rsus : float
+        rsus : array_like
             surface shortwave upwelling radiation, W m-2
-        rsds : float
+        rsds : array_like
             surface shortwave downwelling radiation, W m-2
-        angle_factor_down : float
+        angle_factor_down : float, default=0.5
             proportion of the total view from the downwards direction
-        angle_factor_up : float
+        angle_factor_up : float, default=0.5
             proportion of the total view from the upwards direction
-        absorption: float
+        absorption : float, default=0.7
             absorption coefficient of the human body from shortwave radiation
-        emissivity: float
+        emissivity : float, default=0.97
             emissivity of the human body
         direct_exposed : float or None
             proportion of the body exposed to direct radiation. If None given,
             calculate it
-        cos_zenith : float
+        cos_zenith : float, default=1
             cosine of the solar zenith angle
-        lit : float
+        lit : float, default=1
             proportion of the time interval that the sun is above the horizon. Use
             lit=1 for instantaneous daytime calculations (this is most relevant for
             climate model data over longer periods like 3 hours).
 
-    Returns:
-        mean_radiant_temperature, Kelvin
+    Returns
+    -------
+        mean_radiant_temperature : array_like
+            Mean radiant temperature in K
     """
     # check if the input is scalar or array
     rlds = np.asarray(rlds)

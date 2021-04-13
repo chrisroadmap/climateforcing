@@ -40,32 +40,32 @@ def _modified_julian_day(cftime_in):
 def modified_julian_date(cftime_in):
     """Determine the Julian date to use for orbital parameters.
 
-    If using the Gregorian, Proleptic Gregorian (=standard) or Julian calendars, this
+    If using the Gregorian, Proleptic Gregorian, standard, or Julian calendars, this
     will not actually modify anything. For 365, 366 and 360 day calendars used in some
     climate models, the Julian date is adjusted to try and get the solar position in
     the climate model to be roughly correct. It will introduce discrete jumps as the
     Julian day number may skip (in 360 and 365 day cases) or repeat (in 366 day cases)
-    as we also want to ensure that the fractional part of the Julian day, representing
+    as we also want to ensure that the fractional part of the Julian date, representing
     the hour angle, is in the correct part of the diurnal cycle.
 
     Example
     -------
     >>> modified_julian_date(cftime.datetime(2021, 2, 30, 17, 36, calendar='360_day'))
-
     2459276.2333333334
 
-    Inputs
-    ------
-        cftime_in : `cftime.datetime`
-            instance of `cftime.datetime` in the form
-
-            cftime.datetime(year, month, day, [hour], [minute], [second], [nanosecond],
-                calendar)
+    Parameters
+    ----------
+        cftime_in : :obj:`cftime.datetime`
+            The date and time to calculate the orbital parameters for. See [1]_.
 
     Returns
     -------
         mjd : float
-            modified julian day
+            modified julian date
+
+    References
+    ----------
+    .. [1] cftime documentation, https://unidata.github.io/cftime/api.html
     """
     mjd = _modified_julian_day(cftime_in)
     adjustment = (
@@ -303,20 +303,20 @@ def _check_and_expand_inputs(latitude, longitude):
 def cos_solar_zenith_angle(julian_date, latitude, longitude):
     """Calculate the cosine of the solar zenith angle.
 
-    Inputs
-    ------
+    Parameters
+    ----------
         julian_date : float
-            julian date measured in days from 1 January 2000 12:00:00 GMT = 2451545.0
-        latitude : float or `np.ndarray`
+            julian date measured in days from 1 January 2000 12:00:00 GMT = 2451545.0.
+            Designed to work with `modified_julian_date` for non-standard calendars.
+        latitude : array_like
             latitude of the grid points to calculate solar zenith angle
-        longitude: float or `np.ndarray`
+        longitude: array_like
             longitude of the grid points to calculate solar zenith angle
 
     Returns
     -------
-        cosz : float or `np.ndarray`
-            cosine of zenith angle. Scalar if latitude and longitude are both scalars,
-            otherwise 2D array.
+        cosz : array_like
+            cosine of zenith angle.
     """
     latitude, longitude, scalar_input = _check_and_expand_inputs(latitude, longitude)
     _, delta_prime = _topocentric_sun_coordinates(julian_date, latitude, longitude)
@@ -339,7 +339,7 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals,too-many-sta
 ):
     """Calculate the cosine of the time-mean solar zenith angle.
 
-    Inputs
+    Parameters
     ------
         julian_date_mean : float
             julian date of the middle of the period, including fractional part of the
@@ -349,18 +349,17 @@ def cos_mean_solar_zenith_angle(  # pylint: disable=too-many-locals,too-many-sta
             Results are generally stable for time_delta_hours <= 6. Therefore, the
             integration period is from julian_date_mean - time_delta_hours / 24 / 2
             to julian_date_mean + time_delta_hours / 24 / 2.
-        latitude : float or `np.ndarray`
+        latitude : array_like
             latitude of the grid points to calculate mean solar zenith angle
-        longitude: float or `np.ndarray`
+        longitude: array_like
             longitude of the grid points to calculate mean solar zenith angle
 
     Returns
     -------
-        mean_cosz : float or `np.ndarray`
-            cosine of mean zenith angle. Scalar if latitude and longitude are both
-            scalars, otherwise 2D array.
-        lit : float or `np.ndarray`
-            sunlit fraction of grid point
+        mean_cosz : array_like
+            cosine of mean zenith angle.
+        lit : array_like
+            sunlit fraction of grid point over the time period.
     """
     # cases to consider:
     # 1. sun always above horizon: go from start to end of period

@@ -47,7 +47,7 @@ pylint: $(VENV_DIR)  ## apply linter
 	$(VENV_DIR)/bin/pylint src;
 
 docs: $(VENV_DIR)  ## build the docs
-	$(VENV_DIR)/bin/sphinx-build -M html docs/source docs/build
+	$(VENV_DIR)/bin/sphinx-build -M html docs/ docs/build
 
 test:  $(VENV_DIR) ## run the full testsuite
 	$(VENV_DIR)/bin/pytest tests --cov -rfsxEX --cov-report term-missing

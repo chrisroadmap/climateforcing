@@ -17,20 +17,22 @@ def global_mean(array, lat, axis=None):
     """Calculate area-weighted mean.
 
     Quick and dirty method, assumes latitude bounds are halfway (arithmetically)
-    between neighbouring points. If you're being super strict you want to use
+    between latitude points. If you're being super strict you want to use
     something like `iris` (e.g. this method is not time-aware).
 
-    Inputs:
-        array :: `np.ndarray`
-            array to apply latitude-weighting to.
-        lat :: `np.ndarray`
-            latitude points of the array in degrees.
-        axis :: int or None
-            axis to perform the weighting over. None is valid for a 1d array,
+    Parameters
+    ----------
+        array : array_like
+            array to apply the latitude-weighting to. Must be at least 1d.
+        lat : array_like
+            latitude points of the array in degrees. Should be 1d.
+        axis : int or None
+            axis to perform the weighting over. None is valid for a 1d `array`,
             otherwise must be specified.
 
-    Returns:
-        result :: float
+    Returns
+    -------
+        result : float
             area-weighted mean of array
     """
     # initial checks
