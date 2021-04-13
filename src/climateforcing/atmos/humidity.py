@@ -19,22 +19,29 @@ def specific_to_relative(
 ):  # pylint: disable=invalid-name,too-many-arguments
     """Convert specific humidity to relative humidity.
 
-    From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
-
-    Inputs:
-        specific_humidity :: float or `np.ndarray`
+    Parameters
+    ----------
+        specific_humidity : array_like
             Specific humidity (kg/kg)
-        pressure :: float or `np.ndarray`
-            Air prsaturation_vapour_pressuresure (Pa)
-        air_temperature :: float or `np.ndarray`
+        pressure : array_like
+            Air pressure (Pa)
+        air_temperature :: array_like
             Air temperature (K)
-        A, B, C :: float
-            Fitting parameters from Alduchov and Eskridge (1996)
-        rh_percent :: bool
+        A, B, C : float
+            Fitting parameters for humidity calculation [1]_.
+        rh_percent : bool, default=False
             True to return relative humidity in %, False if 0-1 scale
 
-    Returns:
+    Returns
+    -------
         relative_humidity: relative humidity on unit scale (100% = 1)
+
+    References
+    ----------
+    .. [1] Lawrence, M. G. (2005). The Relationship between Relative Humidity and the
+    Dewpoint Temperature in Moist Air: A Simple Conversion and Applications, Bulletin
+    of the American Meteorological Society, 86(2), 225-234,
+    https://doi.org/10.1175/BAMS-86-2-225
     """
     saturation_vapour_pressure = C * exp(
         A * (air_temperature - 273.15) / (B + air_temperature)
@@ -64,22 +71,29 @@ def relative_to_specific(
 ):  # pylint: disable=invalid-name,too-many-arguments
     """Convert relative humidity to specific humidity.
 
-    From Mark G. Lawrence, BAMS Feb 2005, eq. (6)
-
-    Inputs:
-        relative_humidity :: float or `np.ndarray`
-            relative humidity (see rh_percent)
-        pressure :: float or `np.ndarray`
-            Air prsaturation_vapour_pressuresure (Pa)
-        air_temperature :: float or `np.ndarray`
+    Parameters
+    ----------
+        relative_humidity : array_like
+            Relative humidity, in either percent or 0-1 scale (see `rh_percent`)
+        pressure : array_like
+            Air pressure (Pa)
+        air_temperature : array_like
             Air temperature (K)
-        A, B, C :: float
-            Fitting parameters from Alduchov and Eskridge (1996)
-        rh_percent :: bool
-            True if relative humidity is given in %, False if 0-1 scale
+        A, B, C : float
+            Fitting parameters for humidity calculation [1]_.
+        rh_percent : bool, default=False
+            True if relative humidity is given in percent, False if 0-1 scale
 
-    Returns:
+    Returns
+    -------
         specific_humidity: specific humidity (kg/kg)
+
+    References
+    ----------
+    .. [1] Lawrence, M. G. (2005). The Relationship between Relative Humidity and the
+    Dewpoint Temperature in Moist Air: A Simple Conversion and Applications, Bulletin
+    of the American Meteorological Society, 86(2), 225-234,
+    https://doi.org/10.1175/BAMS-86-2-225
     """
     if rh_percent:
         relative_humidity = relative_humidity / 100

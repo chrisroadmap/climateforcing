@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 from netCDF4 import Dataset
 
-# TODO: docstrings for non-APRP functions
 # TODO: sort out refactoring for main aprp function
 
 
@@ -21,13 +20,19 @@ def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
 def cloud_radiative_effect(base, pert):
     """Calculate the cloud radiative effect intended for longwave fluxes.
 
-    Input:
-        base, pert: dicts of CMIP diagnostics required to calculate APRP:
-            'rlut'    : toa outgoing longwave flux
-            'rlutcs'  : toa outgoing longwave flux assuming clear sky
+    Parameters
+    ----------
+    base, pert: dict of array_like
+        CMIP diagnostics required to calculate longwave cloud radiative effect. The
+        dicts should contain two keys:
 
-    Output:
-        ERFariLW, ERFaciLW: arrays
+        rlut    : top-of-atmosphere outgoing longwave flux
+        rlutcs  : top-of-atmosphere longwave flux assuming clear sky
+
+    Returns
+    -------
+    erfari_lw, erfaci_lw : array_like
+        Longwave ERFari and ERFaci estimates.
     """
     # check all required diagnostics are present
     check_vars = ["rlut", "rlutcs"]
@@ -54,66 +59,55 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     separate the effective radiative forcing into aerosol-radiation (ERFari) and
     aerosol-cloud (ERFaci) components.
 
-    References:
-    -----------
-    Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014), Quantifying
-    components of aerosol‐cloud‐radiation interactions in climate models, J. Geophys.
-    Res. Atmos., 119, 7599– 7615, https://doi.org/10.1002/2014JD021710.
+    Parameters
+    ----------
+        base, pert : dict of array_like
+            Baseline and perturbation climate states to use.
 
-    Taylor, K. E., Crucifix, M., Braconnot, P., Hewitt, C. D., Doutriaux, C., Broccoli,
-    A. J., Mitchell, J. F. B., & Webb, M. J. (2007). Estimating Shortwave Radiative
-    Forcing and Response in Climate Models, Journal of Climate, 20(11), 2530-2543,
-    https://doi.org/10.1175/JCLI4143.1
+            Both `base` and `pert` are dicts containing CMIP-style variables. CMIP
+            variable naming conventions are used. The dicts should contain the
+            following keys:
 
-    This implementation is a little different to Mark Zelinka's version at
-    https://github.com/mzelinka/aprp.
+            rsdt    : TOA incoming shortwave flux (W m-2)
+            rsus    : surface upwelling shortwave flux (W m-2)
+            rsds    : surface downwelling_shortwave flux (W m-2)
+            clt     : cloud area_fraction (fraction or %, see `clt_unit`)
+            rsdscs  : surface downwelling shortwave flux assuming clear sky (W m-2)
+            rsuscs  : surface upwelling shortwave flux assuming clear sky (W m-2)
+            rsut    : TOA outgoing shortwave flux (W m-2)
+            rsutcs  : TOA outgoing shortwave flux assuming clear sky (W m-2)
 
-    Input:
-        base : dict
-            baseline climate to use
-        pert : dict
-            perturbed climate to use
-        longwave : bool
+            If the longwave calculation is also required, the following keys should
+            also be included:
+
+            rlut    : TOA outgoing longwave flux (W m-2)
+            rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
+
+        longwave : bool, default=True
             calculate the longwave forcing, in addition to the shortwave.
-        breakdown : bool
+        breakdown : bool, default=False
             provide the forward and reverse calculations of APRP in the output, along
             with the central difference (the mean of forward and reverse)
-        cs_threshold : float
+        cs_threshold : float, default=0.02
             minimum cloud fraction (0-1 scale) for calculation of cloudy-sky APRP. If
             either perturbed or control run cloud fraction is below this, set the APRP
             flux to zero. It is recommended to use a small positive value, as the
             cloud fraction appears in the denominator of the calculation. Taken from
             Mark Zelinka's implementation.
-        clt_percent : bool
+        clt_percent : bool, default=True
             is cloud fraction from base and pert in percent (True) or 0-1 scale
             (False)
 
-    Both `base` and `pert` are `dict`s containing CMIP-style variables and can be
-    scalars or arrays. CMIP variable naming conventions are used.
+    Returns
+    -------
+        central[, forward, reverse] : dict of array_like
+            Components of APRP as defined by equation A2 of [1]_.
 
-        rsdt    : TOA incoming shortwave flux (W m-2)
-        rsus    : surface upwelling shortwave flux (W m-2)
-        rsds    : surface downwelling_shortwave flux (W m-2)
-        clt     : cloud area_fraction (fraction or %, see `clt_unit`)
-        rsdscs  : surface downwelling shortwave flux assuming clear sky (W m-2)
-        rsuscs  : surface upwelling shortwave flux assuming clear sky (W m-2)
-        rsut    : TOA outgoing shortwave flux (W m-2)
-        rsutcs  : TOA outgoing shortwave flux assuming clear sky (W m-2)
+            dict keys are 't1', 't2', ..., 't9' where tX is the corresponding term in
+            eq. A2.
 
-    If the longwave calculation is also required, the following should also be included
-
-        rlut    : TOA outgoing longwave flux (W m-2)
-        rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
-
-    Returns:
-        central[, forward, reverse] : dict(s)
-            Components of APRP as defined by equation A2 of Zelinka et al., 2014
-
-            dict elements are 't1', 't2', ..., 't9' where tX is the
-            corresponding term in A2.
-
-            't2_clr' and 't3_clr' are also provided, being hypothetical clear sky
-            values of t2 and t3.
+            't2_clr' and 't3_clr' are also provided, being hypothetical clear sky values
+            of t2 and t3.
 
             Result dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
 
@@ -123,10 +117,27 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
             ERFari_SWclr = t2_clr + t3_clr
 
             though note these only make sense if you are calculating aerosol forcing.
-            The cloud fraction adjustment component of ERFaci is in t9.
+            The cloud fraction adjustment component of ERFaci is t9.
 
-            if longwave==True, central also contains 'ERFariLW' and 'ERFaciLW' as
+            if longwave is True, central also contains 'ERFariLW' and 'ERFaciLW' as
             calculated from the cloud radiative effect.
+
+    Notes
+    -----
+    This implementation is a little different to Mark Zelinka's version at
+    https://github.com/mzelinka/aprp.
+
+    References
+    ----------
+    .. [1] Zelinka, M. D., Andrews, T., Forster, P. M., and Taylor, K. E. (2014),
+    Quantifying components of aerosol‐cloud‐radiation interactions in climate
+    models, J. Geophys. Res. Atmos., 119, 7599– 7615,
+    https://doi.org/10.1002/2014JD021710.
+
+    .. [2] Taylor, K. E., Crucifix, M., Braconnot, P., Hewitt, C. D., Doutriaux, C.,
+    Broccoli, A. J., Mitchell, J. F. B., & Webb, M. J. (2007). Estimating Shortwave
+    Radiative Forcing and Response in Climate Models, Journal of Climate, 20(11),
+    2530-2543, https://doi.org/10.1175/JCLI4143.1
     """
     # check all required diagnostics are present
     if longwave:
@@ -517,15 +528,23 @@ def create_input(
     Variables required are rsdt, rsus, rsds, clt, rsdscs, rsuscs, rsut, rsutcs
     An error will be raised if variables are not detected.
 
-    Inputs:
-        basedir: directory containing control variables
-        pertdir: directory containing forcing perturbed variables
-        latout: True if lat variable to be included in output.
-        longwave: Set to True to do LW calculation using CRE.
-        slc: `slice` of indices to use from each dataset.
+    Parameters
+    ----------
+        basedir : str
+            Directory containing control climate simulation variables
+        pertdir : str
+            Directory containing perturbed climate simulation variables
+        latout : bool, default=False
+            if True, include array of latitude points in the output.
+        longwave : bool, default=False
+            if True, do the longwave calculation using cloud radiative effect, in
+            addition to the shortwave calculation using APRP.
+        slc: `slice`, optional
+            Slice of indices to use from each dataset if not all of them.
 
-    Outputs:
-        base: dict of variables needed for APRP from control
+    Returns
+    -------
+        base, pert : dict of array_like of variables needed for APRP from control
         pert: dict of variables needed for APRP from experiment
         [lat]: latitude points relating to axis 1 of arrays
     """

@@ -68,12 +68,14 @@ import numpy as np
 def saturation_specific_humidity(air_temperature):
     """Convert air temperature to saturation specific humidity.
 
-    Inputs:
-        air_temperature :: float, list or `numpy.ndarray`
+    Parameters
+    ----------
+        air_temperature : array_like
             air temperature, Kelvin
 
-    Returns:
-        ssh :: float or `numpy.ndarray`
+    Returns
+    -------
+        ssh array_like
             saturation specific humidity, Pa
     """
     # allow list input: convert to array
@@ -103,26 +105,28 @@ def utci(
 ):
     """Calculate Universal Thermal Climate Index.
 
-    Inputs:
-        air_temperature :: float, list or `numpy.ndarray`
-            air temperature, Kelvin
-        mean_radiant_temperature :: float, list or `numpy.ndarray`
-            mean radiant temperature, Kelvin. See `utci.mean_radiant_temperature`.
-        wind_speed_10m :: float, list or `numpy.ndarray`
+    Parameters
+    ----------
+        air_temperature : array_like
+            air temperature, K
+        mean_radiant_temperature : array_like
+            mean radiant temperature, K. See `utci.mean_radiant_temperature`.
+        wind_speed_10m : array_like
             wind speed at 10m above ground level
-        humidity :: float, list or `numpy.ndarray`
+        humidity : array_like
             either relative humidity in percent, or specific humidity in Pa. See
             `humidity_type`.
-        humidity_type :: string
-            'relative' : humidity is expressed as relative humidity
-            'specific' : humidity is expressed as specific humidity
+        humidity_type : {"relative", "specific"}
 
-    Returns:
-        utci :: float or `numpy.ndarray`
+    Returns
+    -------
+        utci : array_like
             Universal Thermal Climate Index value in degrees Celcius scale
 
-    Raises:
-        ValueError if `humidity_type` does not begin with 'r' or 's'
+    Raises
+    ------
+        ValueError:
+            if `humidity_type` does not begin with "r" or "s"
     """
     # allow list input: convert to array
     air_temperature = np.asarray(air_temperature)

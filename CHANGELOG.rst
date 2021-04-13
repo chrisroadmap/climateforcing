@@ -12,7 +12,11 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+
+v0.2.0
+------
 - added: `solar` module (`#14 <https://github.com/chrisroadmap/climateforcing/pull/14>`_)
+- changed: all docstrings converted to numpy style (`#15 <https://github.com/chrisroadmap/climateforcing/pull/15>`_)
 
 v0.1.1
 ------

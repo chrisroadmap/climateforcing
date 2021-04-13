@@ -5,8 +5,8 @@
 .. image:: https://img.shields.io/pypi/pyversions/climateforcing
    :alt: PyPI - Python Version
 
-Climate forcing
-===============
+climateforcing
+==============
 
 An incomplete toolbox of scripts and modules used for analysis of climate models and climate data. 
 

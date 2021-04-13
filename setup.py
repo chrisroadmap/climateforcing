@@ -21,6 +21,7 @@ REQUIREMENTS_TESTS = [
     "pytest>=4.0",
 ]
 REQUIREMENTS_DEPLOY = ["twine>=1.11.0", "setuptools>=41.2", "wheel>=0.31.0"]
+REQUIREMENTS_DOCS = ["sphinx>=1.4", "sphinx_rtd_theme"]
 
 REQUIREMENTS_DEV = [
     *[
@@ -32,12 +33,14 @@ REQUIREMENTS_DEV = [
         "readme-renderer",
     ],
     *REQUIREMENTS_DEPLOY,
+    *REQUIREMENTS_DOCS,
     *REQUIREMENTS_TESTS,
 ]
 
 REQUIREMENTS_EXTRAS = {
     "deploy": REQUIREMENTS_DEPLOY,
     "dev": REQUIREMENTS_DEV,
+    "docs": REQUIREMENTS_DOCS,
     "tests": REQUIREMENTS_TESTS,
 }
 
@@ -46,7 +49,7 @@ PACKAGES = find_packages(SOURCE_DIR)
 PACKAGE_DIR = {"": SOURCE_DIR}
 
 # Get the long description from the README file
-with open("README.rst", "r") as fh:
+with open("README.rst", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 setup(
