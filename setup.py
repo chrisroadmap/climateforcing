@@ -49,7 +49,7 @@ PACKAGES = find_packages(SOURCE_DIR)
 PACKAGE_DIR = {"": SOURCE_DIR}
 
 # Get the long description from the README file
-with open("README.rst", "r") as fh:
+with open("README.rst", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 setup(
