@@ -59,3 +59,8 @@ def test_twolayermodel():
     assert np.allclose(result.qtot, EXPECTED_RESULT.qtot)
     assert np.allclose(result.tg, EXPECTED_RESULT.tg)
     assert np.allclose(result.tlev, EXPECTED_RESULT.tlev)
+
+    # Change secperyear and verify OHC is now different
+    scm365 = TwoLayerModel(scm_in=result, secperyear=365 * 24 * 60 * 60)
+    result365 = scm365.run()
+    assert ~np.allclose(result365.ohc, EXPECTED_RESULT.ohc)

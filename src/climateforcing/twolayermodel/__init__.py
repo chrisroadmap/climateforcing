@@ -314,6 +314,8 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         "cdeep": 109.0,
         "gamma": 0.67,
         "eff": 1.28,
+        "earthradius": EARTHRADIUS,
+        "secperyear": SECPERYEAR,
     }
 
     def __init__(self, **kwargs):  # pylint: disable=too-many-locals
@@ -332,12 +334,22 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
                 Heat exchange coefficient between upper and deep layer, W m-2 K-1
             eff : float
                 Efficacy of deep ocean.
+            earthradius : float, default=`climateforcing.constants.EARTHRADIUS`
+                Earth radius (m)
+            secperyear : float, default=`climateforcing.constants.SECPERYEAR`
+                Seconds in a year (s)
         """
         self.params = self.default.copy()
         self.params.update(kwargs)
 
         # care with unit handling
-        self.ntoa2joule = 4 * math.pi * EARTHRADIUS * EARTHRADIUS * SECPERYEAR * 1e-22
+        self.ntoa2joule = (
+            4
+            * math.pi
+            * self.params["earthradius"] ** 2
+            * self.params["secperyear"]
+            * 1e-22
+        )
 
         # Define derived constants
         cdeep_p = self.params["cdeep"] * self.params["eff"]
