@@ -75,7 +75,7 @@ def saturation_specific_humidity(air_temperature):
 
     Returns
     -------
-        ssh array_like
+        ssh : array_like
             saturation specific humidity, Pa
     """
     # allow list input: convert to array
