@@ -292,7 +292,7 @@ def _check_and_expand_inputs(latitude, longitude):
             "2-dimensional arrays"
         )
     elif latitude.ndim == 1 and longitude.ndim == 1:
-        latitude, longitude = np.meshgrid(latitude, longitude)
+        longitude, latitude = np.meshgrid(longitude, latitude)
     elif latitude.ndim == 0 and longitude.ndim == 0:
         latitude = latitude[None]
         longitude = longitude[None]
