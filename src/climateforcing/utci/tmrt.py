@@ -51,9 +51,9 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
         direct_exposed : float or None
             proportion of the body exposed to direct radiation. If None given,
             calculate it
-        cos_zenith : float, default=1
+        cos_zenith : array_like, default=1
             cosine of the solar zenith angle
-        lit : float, default=1
+        lit : array_like, default=1
             proportion of the time interval that the sun is above the horizon. Use
             lit=1 for instantaneous daytime calculations (this is most relevant for
             climate model data over longer periods like 3 hours).
@@ -89,12 +89,12 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
         rsdsdirh = rsdsdirh[np.newaxis]
     if cos_zenith.ndim == 0:
         cos_zenith = cos_zenith[np.newaxis]
-    #    if lit.ndim == 0:
-    #        lit = lit[np.newaxis]
+    if lit.ndim == 0:
+        lit = lit * np.ones_like(cos_zenith)
     night = cos_zenith <= 0
     rsdsdirh[night] = 0
     rsdsdir = np.zeros_like(cos_zenith)
-    rsdsdir[~night] = rsdsdirh[~night] / cos_zenith[~night] * lit  # [~night]
+    rsdsdir[~night] = rsdsdirh[~night] / cos_zenith[~night] * lit[~night]
 
     # calculate the direct exposed fraction if it is not given
     # no additional correction for lit fraction as it appears in rsdsdir

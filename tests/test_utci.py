@@ -102,6 +102,7 @@ def test_integration_array():
         np.array([100, 50]),
         np.array([700, 400]),
         cos_zenith=np.array([0.5, 0.2]),
+        lit=np.array([1, 1]),
     )
     TEST_RESULT = utci(
         np.array([295, 296]), mrt, np.array([6.0, 6.0]), np.array([100, 100])
