@@ -6,13 +6,13 @@ import pytest
 from climateforcing.utci import (
     mean_radiant_temperature,
     saturation_specific_humidity,
-    utci,
+    universal_thermal_climate_index,
 )
 
 
 def test_utci_array():
-    EXPECTED_RESULT = np.array([19.62569676, 21.23458492])
-    TEST_RESULT = utci(
+    EXPECTED_RESULT = 273.15 + np.array([19.62569676, 21.23458492])
+    TEST_RESULT = universal_thermal_climate_index(
         np.array([295, 296]),
         np.array([303, 304]),
         np.array([6.0, 6.0]),
@@ -22,21 +22,23 @@ def test_utci_array():
 
 
 def test_utci_list():
-    EXPECTED_RESULT = np.array([19.62569676, 21.23458492])
-    TEST_RESULT = utci([295, 296], [303, 304], [6.0, 6.0], [100, 100])
+    EXPECTED_RESULT = 273.15 + np.array([19.62569676, 21.23458492])
+    TEST_RESULT = universal_thermal_climate_index(
+        [295, 296], [303, 304], [6.0, 6.0], [100, 100]
+    )
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
 def test_utci_scalar():
-    EXPECTED_RESULT = 19.62569676
-    TEST_RESULT = utci(295, 303, 6, 100)
+    EXPECTED_RESULT = 273.15 + 19.62569676
+    TEST_RESULT = universal_thermal_climate_index(295, 303, 6, 100)
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
     assert isinstance(TEST_RESULT, numbers.Number)
 
 
 def test_utci_raises():
     with pytest.raises(ValueError):
-        utci(295, 296, 6, 100, humidity_type="wet")
+        universal_thermal_climate_index(295, 296, 6, 100, humidity_type="wet")
 
 
 def test_ssh_array():
@@ -94,7 +96,7 @@ def test_mrt_direct_exposed():
 
 
 def test_integration_array():
-    EXPECTED_RESULT = np.array([22.33807826, 18.04481664])
+    EXPECTED_RESULT = 273.15 + np.array([22.33807826, 18.04481664])
     mrt = mean_radiant_temperature(
         np.array([150, 50]),
         np.array([350, 150]),
@@ -104,24 +106,26 @@ def test_integration_array():
         cos_zenith=np.array([0.5, 0.2]),
         lit=np.array([1, 1]),
     )
-    TEST_RESULT = utci(
+    TEST_RESULT = universal_thermal_climate_index(
         np.array([295, 296]), mrt, np.array([6.0, 6.0]), np.array([100, 100])
     )
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
 def test_integration_list():
-    EXPECTED_RESULT = np.array([22.33807826, 18.04481664])
+    EXPECTED_RESULT = 273.15 + np.array([22.33807826, 18.04481664])
     mrt = mean_radiant_temperature(
         [150, 50], [350, 150], [400, 200], [100, 50], [700, 400], cos_zenith=[0.5, 0.2]
     )
-    TEST_RESULT = utci([295, 296], mrt, [6.0, 6.0], [100, 100])
+    TEST_RESULT = universal_thermal_climate_index(
+        [295, 296], mrt, [6.0, 6.0], [100, 100]
+    )
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
 def test_integration_scalar():
-    EXPECTED_RESULT = 22.33807826100249
+    EXPECTED_RESULT = 273.15 + 22.33807826100249
     mrt = mean_radiant_temperature(150, 350, 400, 100, 700, cos_zenith=0.5)
-    TEST_RESULT = utci(295, mrt, 6, 100)
+    TEST_RESULT = universal_thermal_climate_index(295, mrt, 6, 100)
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
     assert isinstance(TEST_RESULT, numbers.Number)
