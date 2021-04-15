@@ -3,9 +3,9 @@
 .. image:: https://badge.fury.io/py/climateforcing.svg
    :target: https://badge.fury.io/py/climateforcing
 .. image:: https://img.shields.io/pypi/pyversions/climateforcing
-   :alt: PyPI - Python Version
+   :target: https://anaconda.org/chrisroadmap/climateforcing
 .. image:: https://img.shields.io/conda/v/chrisroadmap/climateforcing
-   :alt: Conda
+   :target: https://img.shields.io/conda/v/chrisroadmap/climateforcing
 
 climateforcing
 ==============
