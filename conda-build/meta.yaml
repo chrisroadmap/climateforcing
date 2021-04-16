@@ -1,0 +1,32 @@
+package:
+  name: climateforcing
+  version: {{ GIT_DESCRIBE_TAG }}
+
+source:
+  git_url: ../
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python
+  run:
+    - python
+    - cftime>=1.4.0
+    - numpy
+    - netCDF4
+    - pandas
+    - scipy
+    - tqdm
+
+about:
+  home: https://github.com/chrisroadmap/climateforcing
+  license: Apache-2.0
+  license_familY: Apache-2.0
+  license_file: LICENSE
+  summary: "An incomplete toolbox of scripts and modules used for analysis of climate models and climate data."
+
+extra:
+  recipe-maintainers:
+    - chrisroadmap
