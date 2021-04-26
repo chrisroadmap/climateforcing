@@ -5,18 +5,34 @@ CAUTION: after the refactoring these have not been tested.
 
 from numpy import exp, maximum
 
+# constants
+MAGNUS = {
+    "A": 17.625,
+    "B": -30.11.
+    "C": 610.94,
+}
+EPSILON = 0.62198
+
 # TODO: Alduchov and Eskridge (1996) reference
+def saturation_vapour_pressure(air_temperature):
+    return MAGNUS["C"] * exp(MAGNUS["A"] * (air_temperature - 273.15) / (MAGNUS["B"] + air_temperature))
+
+
+def saturation_mixing_ratio(air_temperature):
+    es = saturation_vapour_pressure(air_temperature)
+    return (EPSILON * es / (
+            maximum(pressure, es)
+            - (1 - EPSILON) * es
+        )
+    )
 
 
 def specific_to_relative(
     specific_humidity,
     pressure=101325,
     air_temperature=288.15,
-    A=17.625,
-    B=-30.11,
-    C=610.94,
     rh_percent=False,
-):  # pylint: disable=invalid-name,too-many-arguments
+):
     """Convert specific humidity to relative humidity.
 
     Parameters
@@ -27,8 +43,6 @@ def specific_to_relative(
             Air pressure (Pa)
         air_temperature :: array_like
             Air temperature (K)
-        A, B, C : float
-            Fitting parameters for humidity calculation [1]_.
         rh_percent : bool, default=False
             True to return relative humidity in %, False if 0-1 scale
 
@@ -43,18 +57,8 @@ def specific_to_relative(
     of the American Meteorological Society, 86(2), 225-234,
     https://doi.org/10.1175/BAMS-86-2-225
     """
-    saturation_vapour_pressure = C * exp(
-        A * (air_temperature - 273.15) / (B + air_temperature)
-    )
-    saturation_mixing_ratio = (
-        0.62198
-        * saturation_vapour_pressure
-        / (
-            maximum(pressure, saturation_vapour_pressure)
-            - (1 - 0.62198) * saturation_vapour_pressure
-        )
-    )
-    relative_humidity = specific_humidity / saturation_mixing_ratio
+    ws = saturation_mixing_ratio(air_temperature, pressure)
+    relative_humidity = specific_humidity / ws
     if rh_percent:
         relative_humidity = relative_humidity * 100
     return relative_humidity
@@ -64,11 +68,8 @@ def relative_to_specific(
     relative_humidity,
     pressure=101325,
     air_temperature=288.15,
-    A=17.625,
-    B=-30.11,
-    C=610.94,
     rh_percent=False,
-):  # pylint: disable=invalid-name,too-many-arguments
+):
     """Convert relative humidity to specific humidity.
 
     Parameters
@@ -79,8 +80,6 @@ def relative_to_specific(
             Air pressure (Pa)
         air_temperature : array_like
             Air temperature (K)
-        A, B, C : float
-            Fitting parameters for humidity calculation [1]_.
         rh_percent : bool, default=False
             True if relative humidity is given in percent, False if 0-1 scale
 
@@ -97,15 +96,7 @@ def relative_to_specific(
     """
     if rh_percent:
         relative_humidity = relative_humidity / 100
-    saturation_vapour_pressure = C * exp(
-        A * (air_temperature - 273.15) / (B + air_temperature)
-    )
-    specific_humidity = (
-        0.62198
-        * (relative_humidity * saturation_vapour_pressure)
-        / (
-            maximum(pressure, saturation_vapour_pressure)
-            - (1 - 0.62198) * saturation_vapour_pressure
-        )
-    )
+    ws = saturation_vapour_pressure(air_temperature, pressure)
+    specific_humidity = relative_humidity * ws
+    
     return specific_humidity
