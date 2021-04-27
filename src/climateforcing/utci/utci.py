@@ -59,64 +59,31 @@ http://www.ifado.de
 
 import numpy as np
 
+from ..atmos.humidity import calc_saturation_vapour_pressure, specific_to_relative
+
 # TODO:
-# - compare this to atmos.humidity code
 # - throw warning if any of the input parameters are out of range the relationships
 #   were designed for
 
 
-def saturation_specific_humidity(air_temperature):
-    """Convert air temperature to saturation specific humidity.
-
-    Parameters
-    ----------
-        air_temperature : array_like
-            air temperature, Kelvin
-
-    Returns
-    -------
-        ssh array_like
-            saturation specific humidity, Pa
-    """
-    # allow list input: convert to array
-    # integers to negative powers not allowed, ensure float
-    air_temperature = np.asarray(air_temperature).astype(float)
-
-    log_es = (
-        2.7150305 * np.log(air_temperature)
-        + -2.8365744e3 * air_temperature ** (-2)
-        + -6.028076559e3 * air_temperature ** (-1)
-        + 1.954263612e1
-        + -2.737830188e-2 * air_temperature
-        + 1.6261698e-5 * air_temperature ** 2
-        + 7.0229056e-10 * air_temperature ** 3
-        + -1.8680009e-13 * air_temperature ** 4
-    )
-
-    return np.exp(log_es)
-
-
-def universal_thermal_climate_index(
-    air_temperature,
-    mean_radiant_temperature,
-    wind_speed_10m,
-    humidity,
-    humidity_type="relative",
-):
+def universal_thermal_climate_index(base, mean_radiant_temperature):
     """Calculate Universal Thermal Climate Index.
 
     Parameters
     ----------
-        air_temperature : array_like
-            air temperature, K
+        base : dict of array_like
+            dict containing CMIP-style variables, which should contain the following
+            keys:
+
+            tas     : near-surface air temperature, K
+            sfcWind : near-surface (usually 10m) wind speed, m s-1
+            hurs    : near-surface relative humidity, %
+            huss    : near-surface specific humidity, kg kg-1
+
+            Exactly one of "hurs" or "huss" should be provided.
+
         mean_radiant_temperature : array_like
             mean radiant temperature, K. See `utci.mean_radiant_temperature`.
-        wind_speed_10m : array_like
-            wind speed at 10m above ground level
-        humidity : array_like
-            either relative humidity in percent, or specific humidity in Pa. See
-            `humidity_type`.
-        humidity_type : {"relative", "specific"}
 
     Returns
     -------
@@ -126,28 +93,39 @@ def universal_thermal_climate_index(
     Raises
     ------
         ValueError:
-            if `humidity_type` does not begin with "r" or "s"
+            if input variables do not match what is required by the model.
     """
-    # allow list input: convert to array
-    air_temperature = np.asarray(air_temperature)
-    mean_radiant_temperature = np.asarray(mean_radiant_temperature)
-    wind_speed_10m = np.asarray(wind_speed_10m)
-    humidity = np.asarray(humidity)
+    # this appears in APRP code twice: refactor target
+    check_vars = ["tas", "sfcWind"]
+    for check_var in check_vars:
+        if check_var not in base.keys():
+            raise ValueError("%s not present in %s" % (check_var, "base"))
 
+    # we only want one of hurs or huss
+    huss_present = "huss" in base.keys()
+    hurs_present = "hurs" in base.keys()
+    if huss_present + hurs_present != 1:
+        raise ValueError("Only one of hurs and huss to be specified in base")
+
+    # allow list input: convert to array
+    base["tas"] = np.asarray(base["tas"])
+    mean_radiant_temperature = np.asarray(mean_radiant_temperature)
+    base["sfcWind"] = np.asarray(base["sfcWind"])
     # turn off pylint warnings on short names, because the calculation gets stupid
-    humidity_type = humidity_type.lower()[0]
-    ta = air_temperature - 273.15  # pylint: disable=invalid-name
-    es = saturation_specific_humidity(air_temperature)  # pylint: disable=invalid-name
-    if humidity_type == "s":
-        ws = 0.62198 * es / (es - (1 - 0.62198) * es)  # pylint: disable=invalid-name
-        rh = 100 * humidity / ws  # pylint: disable=invalid-name
-    elif humidity_type == "r":
-        rh = humidity  # pylint: disable=invalid-name
-    else:
-        raise ValueError("`humidity_type` should be `relative` or `specific`")
-    ppwv = es * rh / 100 / 1000  # partial pressure of water vapour, kPa
-    va = wind_speed_10m  # pylint: disable=invalid-name
-    delta_tmrt = mean_radiant_temperature - air_temperature
+    ta = base["tas"] - 273.15  # pylint: disable=invalid-name
+
+    if huss_present:
+        base["hurs"] = specific_to_relative(
+            base["huss"], air_temperature=base["tas"], rh_percent=True
+        )
+    base["hurs"] = np.asarray(base["hurs"])
+    saturation_vapour_pressure = calc_saturation_vapour_pressure(base["tas"])
+
+    ppwv = (
+        saturation_vapour_pressure * base["hurs"] / 100 / 1000
+    )  # partial pressure of water vapour, kPa
+    va = base["sfcWind"]  # pylint: disable=invalid-name
+    delta_tmrt = mean_radiant_temperature - base["tas"]
 
     # sixth order polynomial approximation to UTCI
     result = (
