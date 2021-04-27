@@ -3,29 +3,66 @@
 CAUTION: after the refactoring these have not been tested.
 """
 
-from numpy import exp, maximum
+import numpy as np
 
-# constants
-MAGNUS = {
-    "A": 17.625,
-    "B": -30.11.
-    "C": 610.94,
-}
-EPSILON = 0.62198
+EPSILON = 0.62198  # ratio of water vapour to dry air molecular weights
 
-# TODO: Alduchov and Eskridge (1996) reference
-def saturation_vapour_pressure(air_temperature):
-    return MAGNUS["C"] * exp(MAGNUS["A"] * (air_temperature - 273.15) / (MAGNUS["B"] + air_temperature))
+def calc_saturation_vapour_pressure(air_temperature):
+    """Convert air temperature to saturation vapour pressure.
 
+    Parameters
+    ----------
+        air_temperature : array_like
+            air temperature, K
 
-def saturation_mixing_ratio(air_temperature):
-    es = saturation_vapour_pressure(air_temperature)
-    return (EPSILON * es / (
-            maximum(pressure, es)
-            - (1 - EPSILON) * es
-        )
+    Returns
+    -------
+        es : array_like
+            saturation vapour pressure, Pa
+    """
+    # allow list input: convert to array
+    # integers to negative powers not allowed, ensure float
+    air_temperature = np.asarray(air_temperature).astype(float)
+
+    log_es = (
+        2.7150305 * np.log(air_temperature)
+        + -2.8365744e3 * air_temperature ** (-2)
+        + -6.028076559e3 * air_temperature ** (-1)
+        + 1.954263612e1
+        + -2.737830188e-2 * air_temperature
+        + 1.6261698e-5 * air_temperature ** 2
+        + 7.0229056e-10 * air_temperature ** 3
+        + -1.8680009e-13 * air_temperature ** 4
     )
 
+    return np.exp(log_es)
+
+
+def calc_saturation_mixing_ratio(air_temperature, pressure):
+    """Calculate saturation mixing ratio.
+
+    Parameters
+    ----------
+        air_temperature : array_like
+            Air temperature (K)
+        pressure : array_like
+            Air pressure (Pa)
+
+    Returns
+    -------
+        saturation_mixing_ratio : array_like
+            Saturation mixing ratio, dimensionless
+    """
+    saturation_vapour_pressure = calc_saturation_vapour_pressure(air_temperature)
+    saturation_mixing_ratio = (
+        EPSILON
+        * saturation_vapour_pressure
+        / (
+            np.maximum(pressure, saturation_vapour_pressure)
+            - (1 - EPSILON) * saturation_vapour_pressure
+        )
+    )
+    return saturation_mixing_ratio
 
 def specific_to_relative(
     specific_humidity,
@@ -41,24 +78,18 @@ def specific_to_relative(
             Specific humidity (kg/kg)
         pressure : array_like
             Air pressure (Pa)
-        air_temperature :: array_like
+        air_temperature : array_like
             Air temperature (K)
         rh_percent : bool, default=False
             True to return relative humidity in %, False if 0-1 scale
 
     Returns
     -------
-        relative_humidity: relative humidity on unit scale (100% = 1)
-
-    References
-    ----------
-    .. [1] Lawrence, M. G. (2005). The Relationship between Relative Humidity and the
-    Dewpoint Temperature in Moist Air: A Simple Conversion and Applications, Bulletin
-    of the American Meteorological Society, 86(2), 225-234,
-    https://doi.org/10.1175/BAMS-86-2-225
+        relative_humidity : array_like
+            relative humidity
     """
-    ws = saturation_mixing_ratio(air_temperature, pressure)
-    relative_humidity = specific_humidity / ws
+    saturation_mixing_ratio = calc_saturation_mixing_ratio(air_temperature, pressure)
+    relative_humidity = specific_humidity / saturation_mixing_ratio
     if rh_percent:
         relative_humidity = relative_humidity * 100
     return relative_humidity
@@ -85,18 +116,11 @@ def relative_to_specific(
 
     Returns
     -------
-        specific_humidity: specific humidity (kg/kg)
-
-    References
-    ----------
-    .. [1] Lawrence, M. G. (2005). The Relationship between Relative Humidity and the
-    Dewpoint Temperature in Moist Air: A Simple Conversion and Applications, Bulletin
-    of the American Meteorological Society, 86(2), 225-234,
-    https://doi.org/10.1175/BAMS-86-2-225
+        specific_humidity: array_like
+            specific humidity (kg/kg)
     """
     if rh_percent:
         relative_humidity = relative_humidity / 100
-    ws = saturation_vapour_pressure(air_temperature, pressure)
-    specific_humidity = relative_humidity * ws
-    
+    saturation_mixing_ratio = calc_saturation_mixing_ratio(air_temperature, pressure)
+    specific_humidity = relative_humidity * saturation_mixing_ratio
     return specific_humidity

@@ -5,7 +5,6 @@ import pytest
 
 from climateforcing.utci import (
     mean_radiant_temperature,
-    saturation_specific_humidity,
     universal_thermal_climate_index,
 )
 
@@ -23,21 +22,19 @@ def test_utci_array():
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
-#def test_utci_list():
-#    EXPECTED_RESULT = 273.15 + np.array([19.62569676, 21.23458492])
-#    TEST_RESULT = universal_thermal_climate_index(
-#        [295, 296], [303, 304], [6.0, 6.0], [100, 100]
-#    )
-#    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
-#
-#
-#def test_utci_scalar():
-#    EXPECTED_RESULT = 273.15 + 19.62569676
-#    TEST_RESULT = universal_thermal_climate_index(295, 303, 6, 100)
-#    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
-#    assert isinstance(TEST_RESULT, numbers.Number)
-#
-#
+def test_utci_huss():
+    EXPECTED_RESULT = 273.15 + np.array([19.8185784, 20.9886953])
+    TEST_RESULT = universal_thermal_climate_index(
+        {
+            "tas" : np.array([295, 296]),
+            "sfcWind" : np.array([6.0, 6.0]),
+            "huss" : np.array([0.0167, 0.0167]),  # approx 100% RH at 295K, 1000hPa
+        },
+        np.array([303, 304])
+    )
+    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
+
+
 def test_utci_raises():
     with pytest.raises(ValueError):
         universal_thermal_climate_index(
@@ -53,12 +50,6 @@ def test_utci_raises():
         universal_thermal_climate_index(
             {}, np.array([303, 304])
         )
-
-
-def test_ssh_array():
-    EXPECTED_RESULT = np.array([1388.9644889401982, 3536.824257589194])
-    TEST_RESULT = saturation_specific_humidity(np.array([285, 300]))
-    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
 def test_mrt_array():

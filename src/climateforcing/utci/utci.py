@@ -57,52 +57,18 @@ http://www.ifado.de
 -----------------------------------------------
 """
 
+from ..atmos.humidity import specific_to_relative, calc_saturation_vapour_pressure
+
 import numpy as np
 
 # TODO:
-# - compare this to atmos.humidity code
 # - throw warning if any of the input parameters are out of range the relationships
 #   were designed for
 
 
-def saturation_specific_humidity(air_temperature):
-    """Convert air temperature to saturation specific humidity.
-
-    Parameters
-    ----------
-        air_temperature : array_like
-            air temperature, Kelvin
-
-    Returns
-    -------
-        ssh array_like
-            saturation specific humidity, Pa
-    """
-    # allow list input: convert to array
-    # integers to negative powers not allowed, ensure float
-    air_temperature = np.asarray(air_temperature).astype(float)
-
-    log_es = (
-        2.7150305 * np.log(air_temperature)
-        + -2.8365744e3 * air_temperature ** (-2)
-        + -6.028076559e3 * air_temperature ** (-1)
-        + 1.954263612e1
-        + -2.737830188e-2 * air_temperature
-        + 1.6261698e-5 * air_temperature ** 2
-        + 7.0229056e-10 * air_temperature ** 3
-        + -1.8680009e-13 * air_temperature ** 4
-    )
-
-    return np.exp(log_es)
-
-
 def universal_thermal_climate_index(
     base,
-#    air_temperature,
     mean_radiant_temperature
-#    wind_speed_10m,
-#    humidity,
-#    humidity_type="relative",
 ):
     """Calculate Universal Thermal Climate Index.
 
@@ -151,26 +117,12 @@ def universal_thermal_climate_index(
     # turn off pylint warnings on short names, because the calculation gets stupid
     ta = base["tas"] - 273.15  # pylint: disable=invalid-name
 
-def specific_to_relative(
-    specific_humidity,
-    pressure=101325,
-    air_temperature=288.15,
-    A=17.625,
-    B=-30.11,
-    C=610.94,
-    rh_percent=False,
-
-    es = 
-
-#    es = saturation_specific_humidity(base["tas"])  # pylint: disable=invalid-name
     if huss_present:
-#        base["huss"] = np.asarray(base["huss"])
-        ws = 0.62198 * es / (es - (1 - 0.62198) * es)  # pylint: disable=invalid-name
-        base["hurs"] = 100 * base["huss"] / ws
-#    else:
+        base["hurs"] = specific_to_relative(base["huss"], air_temperature=base["tas"], rh_percent=True)
     base["hurs"] = np.asarray(base["hurs"])
+    saturation_vapour_pressure = calc_saturation_vapour_pressure(base["tas"])
 
-    ppwv = es * base["hurs"] / 100 / 1000  # partial pressure of water vapour, kPa
+    ppwv = saturation_vapour_pressure * base["hurs"] / 100 / 1000  # partial pressure of water vapour, kPa
     va = base["sfcWind"]  # pylint: disable=invalid-name
     delta_tmrt = mean_radiant_temperature - base["tas"]
 
