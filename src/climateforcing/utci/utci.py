@@ -57,19 +57,16 @@ http://www.ifado.de
 -----------------------------------------------
 """
 
-from ..atmos.humidity import specific_to_relative, calc_saturation_vapour_pressure
-
 import numpy as np
+
+from ..atmos.humidity import calc_saturation_vapour_pressure, specific_to_relative
 
 # TODO:
 # - throw warning if any of the input parameters are out of range the relationships
 #   were designed for
 
 
-def universal_thermal_climate_index(
-    base,
-    mean_radiant_temperature
-):
+def universal_thermal_climate_index(base, mean_radiant_temperature):
     """Calculate Universal Thermal Climate Index.
 
     Parameters
@@ -105,8 +102,8 @@ def universal_thermal_climate_index(
             raise ValueError("%s not present in %s" % (check_var, "base"))
 
     # we only want one of hurs or huss
-    huss_present = ("huss" in base.keys())
-    hurs_present = ("hurs" in base.keys())
+    huss_present = "huss" in base.keys()
+    hurs_present = "hurs" in base.keys()
     if huss_present + hurs_present != 1:
         raise ValueError("Only one of hurs and huss to be specified in base")
 
@@ -118,11 +115,15 @@ def universal_thermal_climate_index(
     ta = base["tas"] - 273.15  # pylint: disable=invalid-name
 
     if huss_present:
-        base["hurs"] = specific_to_relative(base["huss"], air_temperature=base["tas"], rh_percent=True)
+        base["hurs"] = specific_to_relative(
+            base["huss"], air_temperature=base["tas"], rh_percent=True
+        )
     base["hurs"] = np.asarray(base["hurs"])
     saturation_vapour_pressure = calc_saturation_vapour_pressure(base["tas"])
 
-    ppwv = saturation_vapour_pressure * base["hurs"] / 100 / 1000  # partial pressure of water vapour, kPa
+    ppwv = (
+        saturation_vapour_pressure * base["hurs"] / 100 / 1000
+    )  # partial pressure of water vapour, kPa
     va = base["sfcWind"]  # pylint: disable=invalid-name
     delta_tmrt = mean_radiant_temperature - base["tas"]
 

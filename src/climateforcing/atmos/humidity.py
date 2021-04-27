@@ -7,6 +7,7 @@ import numpy as np
 
 EPSILON = 0.62198  # ratio of water vapour to dry air molecular weights
 
+
 def calc_saturation_vapour_pressure(air_temperature):
     """Convert air temperature to saturation vapour pressure.
 
@@ -64,11 +65,9 @@ def calc_saturation_mixing_ratio(air_temperature, pressure):
     )
     return saturation_mixing_ratio
 
+
 def specific_to_relative(
-    specific_humidity,
-    pressure=101325,
-    air_temperature=288.15,
-    rh_percent=False,
+    specific_humidity, pressure=101325, air_temperature=288.15, rh_percent=False,
 ):
     """Convert specific humidity to relative humidity.
 
@@ -96,10 +95,7 @@ def specific_to_relative(
 
 
 def relative_to_specific(
-    relative_humidity,
-    pressure=101325,
-    air_temperature=288.15,
-    rh_percent=False,
+    relative_humidity, pressure=101325, air_temperature=288.15, rh_percent=False,
 ):
     """Convert relative humidity to specific humidity.
 

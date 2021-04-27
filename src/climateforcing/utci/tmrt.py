@@ -66,11 +66,11 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
             raise ValueError("%s not present in %s" % (check_var, "base"))
 
     # check if the input is scalar or array
-    base["rlds"] = np.asarray(base['rlds'])
-    base["rlus"] = np.asarray(base['rlus'])
-    base["rsdsdiff"] = np.asarray(base['rsdsdiff'])
-    base["rsus"] = np.asarray(base['rsus'])
-    base["rsds"] = np.asarray(base['rsds'])
+    base["rlds"] = np.asarray(base["rlds"])
+    base["rlus"] = np.asarray(base["rlus"])
+    base["rsdsdiff"] = np.asarray(base["rsdsdiff"])
+    base["rsus"] = np.asarray(base["rsus"])
+    base["rsds"] = np.asarray(base["rsds"])
     cos_zenith = np.asarray(cos_zenith)
     lit = np.asarray(lit)
 
@@ -79,23 +79,18 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
         if base[check_var].shape != base["rlds"].shape:
             raise ValueError(
                 "%s %s in %s differs in shape to rlds %s"
-                % (
-                    check_var,
-                    base[check_var].shape,
-                    "base",
-                    base["rlds"].shape,
-                )
+                % (check_var, base[check_var].shape, "base", base["rlds"].shape,)
             )
 
     # > 0: one or more of the inputs are array so return array
     array_input = (
-        base["rsds"].ndim +
-        base["rlus"].ndim +
-        base["rsdsdiff"].ndim +
-        base["rsus"].ndim +
-        base["rsds"].ndim +
-        cos_zenith.ndim +
-        lit.ndim
+        base["rsds"].ndim
+        + base["rlus"].ndim
+        + base["rsdsdiff"].ndim
+        + base["rsus"].ndim
+        + base["rsds"].ndim
+        + cos_zenith.ndim
+        + lit.ndim
     )
 
     # Calculate the direct normal radiation
@@ -109,7 +104,9 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
     night = cos_zenith <= 0
     base["rsdsdirh"][night] = 0
     base["rsdsdir"] = np.zeros_like(cos_zenith)
-    base["rsdsdir"][~night] = base["rsdsdirh"][~night] / cos_zenith[~night] * lit[~night]
+    base["rsdsdir"][~night] = (
+        base["rsdsdirh"][~night] / cos_zenith[~night] * lit[~night]
+    )
 
     # calculate the direct exposed fraction if it is not given
     # no additional correction for lit fraction as it appears in rsdsdir

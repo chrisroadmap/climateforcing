@@ -1,6 +1,11 @@
 import numpy as np
 
-from climateforcing.atmos.humidity import relative_to_specific, specific_to_relative, calc_saturation_vapour_pressure
+from climateforcing.atmos.humidity import (
+    calc_saturation_vapour_pressure,
+    relative_to_specific,
+    specific_to_relative,
+)
+
 
 def test_saturation_vapour_pressure():
     EXPECTED_RESULT = np.array([1388.9644889401982, 3536.824257589194])
