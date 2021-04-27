@@ -12,6 +12,10 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+
+v0.2.1
+------
+- fixed: humidity calculation in `utci` (`#21 <https://github.com/chrisroadmap/climateforcing/pull/21>`_)
 - added: conda channel installation setup (`#20 <https://github.com/chrisroadmap/climateforcing/pull/20>`_)
 - changed: transposed the output from `cos_mean_solar_zenith_angle` and renamed `utci` function with UTCI expressed in Kelvin (`#19 <https://github.com/chrisroadmap/climateforcing/pull/19>`_)
 
