@@ -44,6 +44,7 @@ def test_utci_huss_ps():
         },
         np.array([303, 304]),
     )
+    assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
 
 
 def test_utci_raises():
