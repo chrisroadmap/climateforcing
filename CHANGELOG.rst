@@ -13,6 +13,9 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 master
 ------
 
+- added: surface pressure introduced into `utci` (`#24 <https://github.com/chrisroadmap/climateforcing/pull/24>`_)
+- changed: humidity saturation vapour pressure back to Alduchov and Eskridge (1996) (`#24 <https://github.com/chrisroadmap/climateforcing/pull/24>`_)
+
 v0.2.1
 ------
 - fixed: humidity calculation in `utci` (`#21 <https://github.com/chrisroadmap/climateforcing/pull/21>`_)
