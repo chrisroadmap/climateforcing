@@ -79,7 +79,7 @@ def universal_thermal_climate_index(base, mean_radiant_temperature):
             sfcWind : near-surface (usually 10m) wind speed, m s-1
             hurs    : near-surface relative humidity, %
             huss    : near-surface specific humidity, kg kg-1
-
+            ps      : surface air pressure, Pa (optional: default 101325 Pa)
             Exactly one of "hurs" or "huss" should be provided.
 
         mean_radiant_temperature : array_like
