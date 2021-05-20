@@ -11,6 +11,8 @@ EPSILON = 0.62198  # ratio of water vapour to dry air molecular weights
 def calc_saturation_vapour_pressure(air_temperature):
     """Convert air temperature to saturation vapour pressure.
 
+    This uses the simple Magnus formula of Alduchov and Eskridge _[1].
+
     Parameters
     ----------
         air_temperature : array_like
@@ -20,23 +22,20 @@ def calc_saturation_vapour_pressure(air_temperature):
     -------
         es : array_like
             saturation vapour pressure, Pa
+
+    References
+    ----------
+    .. [1] Alduchov, O. & Eskridge, R. (1996). Improved Magnus Form Approximation of
+        Saturation Vapor Pressure, Journal of Applied Meteorology and Climatology, 35
+        (4), 601-609, doi.org/10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2
     """
     # allow list input: convert to array
     # integers to negative powers not allowed, ensure float
     air_temperature = np.asarray(air_temperature).astype(float)
 
-    log_es = (
-        2.7150305 * np.log(air_temperature)
-        + -2.8365744e3 * air_temperature ** (-2)
-        + -6.028076559e3 * air_temperature ** (-1)
-        + 1.954263612e1
-        + -2.737830188e-2 * air_temperature
-        + 1.6261698e-5 * air_temperature ** 2
-        + 7.0229056e-10 * air_temperature ** 3
-        + -1.8680009e-13 * air_temperature ** 4
+    return 610.94 * np.exp(
+        17.625 * (air_temperature - 273.15) / (air_temperature - 30.11)
     )
-
-    return np.exp(log_es)
 
 
 def calc_saturation_mixing_ratio(air_temperature, pressure):

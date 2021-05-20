@@ -8,7 +8,7 @@ from climateforcing.utci import (
 
 
 def test_utci_array():
-    EXPECTED_RESULT = 273.15 + np.array([19.62569676, 21.23458492])
+    EXPECTED_RESULT = 273.15 + np.array([19.60850656, 21.2151128])
     TEST_RESULT = universal_thermal_climate_index(
         {
             "tas": np.array([295, 296]),
@@ -21,7 +21,7 @@ def test_utci_array():
 
 
 def test_utci_huss():
-    EXPECTED_RESULT = 273.15 + np.array([19.8185784, 20.9886953])
+    EXPECTED_RESULT = 273.15 + np.array([19.81876334, 20.98888025])
     TEST_RESULT = universal_thermal_climate_index(
         {
             "tas": np.array([295, 296]),
@@ -31,6 +31,19 @@ def test_utci_huss():
         np.array([303, 304]),
     )
     assert np.allclose(TEST_RESULT, EXPECTED_RESULT)
+
+
+def test_utci_huss_ps():
+    EXPECTED_RESULT = 273.15 + np.array([17.86596553, 17.84009998])
+    TEST_RESULT = universal_thermal_climate_index(
+        {
+            "tas": np.array([295, 296]),
+            "sfcWind": np.array([6.0, 6.0]),
+            "huss": np.array([0.012, 0.010]),
+            "ps": np.array([96000, 75000]),
+        },
+        np.array([303, 304]),
+    )
 
 
 def test_utci_raises():
@@ -88,7 +101,7 @@ def test_mrt_direct_exposed():
 
 
 def test_integration_array():
-    EXPECTED_RESULT = 273.15 + np.array([22.33807826, 18.04481664])
+    EXPECTED_RESULT = 273.15 + np.array([22.32159032, 18.02267449])
     mrt = mean_radiant_temperature(
         {
             "rlds": np.array([150, 50]),
