@@ -107,6 +107,10 @@ def universal_thermal_climate_index(base, mean_radiant_temperature):
     if huss_present + hurs_present != 1:
         raise ValueError("Only one of hurs and huss to be specified in base")
 
+    # set default pressure if not in input
+    if "ps" not in base.keys():
+        base["ps"] = 101325
+
     # allow list input: convert to array
     base["tas"] = np.asarray(base["tas"])
     mean_radiant_temperature = np.asarray(mean_radiant_temperature)
@@ -116,7 +120,10 @@ def universal_thermal_climate_index(base, mean_radiant_temperature):
 
     if huss_present:
         base["hurs"] = specific_to_relative(
-            base["huss"], air_temperature=base["tas"], rh_percent=True
+            base["huss"],
+            air_temperature=base["tas"],
+            pressure=base["ps"],
+            rh_percent=True,
         )
     base["hurs"] = np.asarray(base["hurs"])
     saturation_vapour_pressure = calc_saturation_vapour_pressure(base["tas"])
