@@ -1,6 +1,9 @@
+{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+
 package:
   name: climateforcing
-  version: {{ GIT_DESCRIBE_TAG }}
+  version: {{ data.get('version') }}
+
 
 source:
   git_url: ../
