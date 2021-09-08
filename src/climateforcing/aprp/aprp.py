@@ -498,7 +498,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     reverse["ERFaciSW"] = reverse["t7"] + reverse["t8"] + reverse["t9"]
     reverse["albedo"] = reverse["t1"] + reverse["t4"]
 
-    for key in forward:
+    for key, _ in forward.items():
         central[key] = 0.5 * (forward[key] + reverse[key])
 
     if longwave:
