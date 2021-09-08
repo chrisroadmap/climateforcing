@@ -1,19 +1,23 @@
-{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+#{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+{% set version = GIT_DESCRIBE_TAG %}
 
 package:
   name: climateforcing
-  version: {{ data.get('version') }}
-
+#  version: {{ data.get('version') }}
+  version: {{ version[1:] }}
 
 source:
   git_url: ../
+
+build:
+  noarch: python
 
 requirements:
   host:
     - python
     - setuptools
   build:
-    - python
+    - python  {{ python }}
   run:
     - python
     - cftime>=1.4.0
@@ -26,7 +30,6 @@ requirements:
 about:
   home: https://github.com/chrisroadmap/climateforcing
   license: Apache-2.0
-  license_familY: Apache-2.0
   license_file: LICENSE
   summary: "An incomplete toolbox of scripts and modules used for analysis of climate models and climate data."
 
