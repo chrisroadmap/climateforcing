@@ -63,7 +63,7 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
     check_vars = ["rlds", "rlus", "rsds", "rsdsdiff", "rsus"]
     for check_var in check_vars:
         if check_var not in base.keys():
-            raise ValueError("%s not present in %s" % (check_var, "base"))
+            raise ValueError(f"{check_var} not present in base")
 
     # check if the input is scalar or array
     base["rlds"] = np.asarray(base["rlds"])
@@ -78,8 +78,8 @@ def mean_radiant_temperature(  # pylint: disable=too-many-arguments,too-many-loc
     for check_var in check_vars:
         if base[check_var].shape != base["rlds"].shape:
             raise ValueError(
-                "%s %s in %s differs in shape to rlds %s"
-                % (check_var, base[check_var].shape, "base", base["rlds"].shape,)
+                f"{check_var} {base[check_var].shape} in base differs in shape "
+                f"to rlds {base['rlds'].shape}"
             )
 
     # > 0: one or more of the inputs are array so return array

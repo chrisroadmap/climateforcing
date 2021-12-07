@@ -99,7 +99,7 @@ def universal_thermal_climate_index(base, mean_radiant_temperature):
     check_vars = ["tas", "sfcWind"]
     for check_var in check_vars:
         if check_var not in base.keys():
-            raise ValueError("%s not present in %s" % (check_var, "base"))
+            raise ValueError(f"{check_var} not present in base")
 
     # we only want one of hurs or huss
     huss_present = "huss" in base.keys()
