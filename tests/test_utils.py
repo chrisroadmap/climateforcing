@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from climateforcing.utils import check_and_download, mkdir_p
 
@@ -9,13 +10,22 @@ def test_mkdir_p():
 
 
 def test_check_and_download():
+    # checking both the operation of check_and_download and the capability to
+    # make a new directory on the fly
     check_and_download(
         "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
-        "tests/testdata/test_image.png",
+        "tests/newdirectory/test_image.png",
     )
+    # clobber working?
     check_and_download(
         "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
-        "tests/testdata/test_image.png",
+        "tests/newdirectory/test_image.png",
         clobber=True,
     )
-    os.remove("tests/testdata/test_image.png")
+    # directory specification working?
+    check_and_download(
+        "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
+        "tests/newdirectory",
+        clobber=True,
+    )
+    shutil.rmtree("tests/newdirectory")
