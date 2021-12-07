@@ -15,6 +15,15 @@ An incomplete toolbox of scripts and modules used for analysis of climate models
 Installation
 ============
 
+conda
+-----
+    
+Putting this on `conda-forge` is a TODO, for now you can grab it from my personal channel:
+
+.. code-block::
+
+    conda install -c chrisroadmap climateforcing
+
 pypi
 ----
 
@@ -52,7 +61,7 @@ humidity: Conversions for specific to relative humidity and vice versa.
 
 geometry: quick and dirty area-weighted mean
 --------------------------------------------
-For when you relly want to know the global mean but don't want to think or download anything much. (Works nicely with `aprp`).
+For when you relly want to know the global mean but don't want to think too hard or download anything much. (Works nicely with `aprp`).
 
 
 solar: time-mean solar zenith angle
