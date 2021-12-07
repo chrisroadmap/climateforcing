@@ -39,7 +39,7 @@ def cloud_radiative_effect(base, pert):
     for var_dict in [base, pert]:
         for check_var in check_vars:
             if check_var not in var_dict.keys():
-                raise ValueError("%s not present in %s" % (check_var, var_dict))
+                raise ValueError(f"{check_var} not present in {var_dict}")
         var_dict["rlut"] = var_dict["rlut"]
         var_dict["rlutcs"] = var_dict["rlutcs"]
 
@@ -167,17 +167,12 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     for var_dict in [base, pert]:
         for check_var in check_vars:
             if check_var not in var_dict.keys():
-                raise ValueError("%s not present in %s" % (check_var, var_dict))
+                raise ValueError(f"{check_var} not present in {var_dict}")
             # if we get to here, rsdt exists, so verify all diagnostics have same shape
             if var_dict[check_var].shape != var_dict["rsdt"].shape:
                 raise ValueError(
-                    "%s %s in %s differs in shape to rsdt %s"
-                    % (
-                        check_var,
-                        var_dict[check_var].shape,
-                        var_dict,
-                        var_dict["rsdt"].shape,
-                    )
+                    f"{check_var} {var_dict[check_var].shape} in {var_dict} "
+                    f"differs in shape to rsdt {var_dict['rsdt'].shape}"
                 )
 
         # rescale cloud fraction to 0-1 if necessary
@@ -570,7 +565,7 @@ def create_input(
     def _extract_files(filenames, var, directory):
         if len(filenames) == 0:
             raise RuntimeError(
-                "No variables of name %s found in directory %s" % (var, directory)
+                f"No variables of name {var} found in directory {directory}"
             )
         for i, filename in enumerate(filenames):
             ncfile = Dataset(filename)
@@ -586,9 +581,9 @@ def create_input(
         return outvar, lat
 
     for var in varlist:
-        filenames = sorted(glob.glob("%s/%s_*.nc" % (basedir, var)))
+        filenames = sorted(glob.glob(f"{basedir}/{var}_*.nc"))
         base[var], lat = _extract_files(filenames, var, basedir)
-        filenames = sorted(glob.glob("%s/%s_*.nc" % (pertdir, var)))
+        filenames = sorted(glob.glob(f"{pertdir}/{var}_*.nc"))
         pert[var], lat = _extract_files(filenames, var, pertdir)
 
     if latout:
