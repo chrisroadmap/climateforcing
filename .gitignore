@@ -1,3 +1,6 @@
+# coverage
+.coverage*
+
 # python complied source
 *.pyc
 __pycache__
