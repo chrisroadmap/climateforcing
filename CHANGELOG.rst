@@ -13,6 +13,10 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 master
 ------
 
+v0.2.3
+------
+- added: option to specify directory in the path of `check_and_download` and to automatically create a new directory if it doesn't exist (`#30 <https://github.com/chrisroadmap/climateforcing/pull/30>`_)
+
 v0.2.2
 ------
 - fixed: tentatively, the superfluous "v" from the version string has been dropped from conda releases (`#25 <https://github.com/chrisroadmap/climateforcing/pull/25>`_)
@@ -48,7 +52,7 @@ v0.0.2
 
 v0.0.1
 ------
-- added: `readme-renderer` in `setup.py` to check that readme file is correctly deployed on PyPI 
+- added: `readme-renderer` in `setup.py` to check that readme file is correctly deployed on PyPI
 
 v0.0.0
 ------

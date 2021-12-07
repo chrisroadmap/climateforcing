@@ -27,18 +27,29 @@ class _DownloadProgressBar(tqdm):
         self.update(blocks * blocksize - self.n)
 
 
-def check_and_download(url, filepath, clobber=False):
+def check_and_download(url, filepath="./", clobber=False):
     """Check prescence of a file and downloads if not present.
 
     Parameters
     ----------
         url : str
             url to download from
-        filepath : str
-            filename to download to
+        filepath : str, optional, default="./"
+            filename to download to. If a directory is specified, write to the
+            directory using the filename from the URL.
         clobber : bool, default=False
-            False if download should not overwrite existing file, True if it should
+            False if download should not overwrite an existing file, True if it
+            should.
     """
+    # if the target directory does not exist, create it
+    target_dir = os.path.split(filepath)[0]
+    mkdir_p(target_dir)
+
+    # if a directory is specified as the filepath, download inside there.
+    if os.path.isdir(filepath):
+        filepath = f"{filepath}/{url.split('/')[-1]}"
+
+    # do the download, if file doesn't exist or we are overwriting
     if clobber or not os.path.isfile(filepath):
         with _DownloadProgressBar(
             unit="B", unit_scale=True, miniters=1, desc=url.split("/")[-1]

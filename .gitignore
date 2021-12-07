@@ -1,6 +1,3 @@
-# coverage
-.coverage*
-
 # python complied source
 *.pyc
 __pycache__
@@ -14,7 +11,8 @@ dist/
 *.egg-info
 
 # Unit test / coverage reports
-.coverage
+.coverage*
+tests/newdirectory
 
 # Virtual environment directory
 .venv/
