@@ -1,4 +1,6 @@
 """APRP: the approximate partial radiative perturbation calculation."""
+
+import copy
 import glob
 import warnings
 
@@ -8,13 +10,83 @@ from netCDF4 import Dataset
 # TODO: sort out refactoring for main aprp function
 
 
-def _planetary_albedo(mu, gamma, alpha):  # pylint: disable=invalid-name
-    """Planetary albedo, eq. (7) of Taylor et al. (2007)."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        pla = mu * gamma + (mu * alpha * (1 - gamma) ** 2) / (1 - alpha * gamma)
-        pla[~np.isfinite(pla)] = 0
+def _planetary_albedo(
+    mu, gamma, alpha_oc, mu_cs, gamma_cs, alpha_cs, clt
+):  # pylint: disable=invalid-name,too-many-arguments
+    """Planetary albedo, eqs. (7, 13 & 14) of Taylor et al. (2007)."""
+    # Refactor target
+    mu_oc = mu_cs * mu
+    gamma_oc = 1 - (1 - gamma_cs) * (1 - gamma)
+    pla_cs = mu_cs * gamma_cs + (mu_cs * alpha_cs * (1 - gamma_cs) ** 2) / (
+        1 - alpha_cs * gamma_cs
+    )
+    pla_oc = mu_oc * gamma_oc + (mu_oc * alpha_oc * (1 - gamma_oc) ** 2) / (
+        1 - alpha_oc * gamma_oc
+    )
+    pla = (1 - clt) * pla_cs + clt * pla_oc
+    #    pla[~np.isfinite(pla)] = 0
     return pla
+
+
+def _calculate_overcast_terms(params):
+    params["rsutoc"] = (
+        params["rsut"] - (1 - params["clt"]) * (params["rsutcs"])
+    ) / params["clt"]
+    params["rsusoc"] = (
+        params["rsus"] - (1 - params["clt"]) * (params["rsuscs"])
+    ) / params["clt"]
+    params["rsdsoc"] = (
+        params["rsds"] - (1 - params["clt"]) * (params["rsdscs"])
+    ) / params["clt"]
+    for var in ["rsds", "rsus"]:
+        params[f"{var}oc"] = np.where(
+            params[f"{var}oc"] > params[var], np.nan, params[f"{var}oc"]
+        )
+    for var in ["rsds", "rsus", "rsut"]:
+        params[f"{var}oc"] = np.where(params[f"{var}oc"] < 0, 0, params[f"{var}oc"])
+    return params
+
+
+def _calculate_parameters(input_params):
+    output_params = {}
+
+    output_params["clt"] = input_params["clt"]
+
+    # clear sky parameters
+    output_params["alpha_cs"] = (
+        input_params["rsuscs"] / input_params["rsdscs"]
+    )  # albedo
+    q_cs = (
+        input_params["rsdscs"] / input_params["rsdt"]
+    )  # ratio of incident sfc flux to TOA insolation
+    output_params["mu_cs"] = input_params["rsutcs"] / input_params["rsdt"] + q_cs * (
+        1 - output_params["alpha_cs"]
+    )  # Eq. 9
+    output_params["gamma_cs"] = (output_params["mu_cs"] - q_cs) / (
+        output_params["mu_cs"] - output_params["alpha_cs"] * q_cs
+    )  # Eq. 10
+
+    # overcast parameters
+    output_params["alpha_oc"] = (
+        input_params["rsusoc"] / input_params["rsdsoc"]
+    )  # albedo
+    q_oc = (
+        input_params["rsdsoc"] / input_params["rsdt"]
+    )  # ratio of incident sfc flux to TOA insolation
+    mu_oc = input_params["rsutoc"] / input_params["rsdt"] + q_oc * (
+        1 - output_params["alpha_oc"]
+    )  # Eq. 9
+    gamma_oc = (mu_oc - q_oc) / (mu_oc - output_params["alpha_oc"] * q_oc)  # Eq. 10
+
+    # cloud parameters
+    output_params["mu"] = (
+        mu_oc / output_params["mu_cs"]
+    )  # Eq. 14 sometimes this is greater than 1??
+    output_params["gamma"] = (gamma_oc - 1) / (
+        1 - output_params["gamma_cs"]
+    ) + 1  # Eq. 13
+
+    return output_params
 
 
 def cloud_radiative_effect(base, pert):
@@ -50,12 +122,7 @@ def cloud_radiative_effect(base, pert):
 
 
 def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements  # noqa: E501
-    base,
-    pert,
-    longwave=False,
-    breakdown=False,
-    cs_threshold=0.02,
-    clt_percent=True,
+    base, pert, longwave=False, cs_threshold=0.02, clt_percent=True, rsdt_threshold=0.1
 ):
     """Approximate Partial Raditive Perturbation calculation.
 
@@ -66,7 +133,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
 
     Parameters
     ----------
-        base, pert : dict of array_like
+        base, pert : dict of np.ndarray
             Baseline and perturbation climate states to use.
 
             Both `base` and `pert` are dicts containing CMIP-style variables. CMIP
@@ -90,9 +157,6 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
 
         longwave : bool, default=True
             calculate the longwave forcing, in addition to the shortwave.
-        breakdown : bool, default=False
-            provide the forward and reverse calculations of APRP in the output, along
-            with the central difference (the mean of forward and reverse)
         cs_threshold : float, default=0.02
             minimum cloud fraction (0-1 scale) for calculation of cloudy-sky APRP. If
             either perturbed or control run cloud fraction is below this, set the APRP
@@ -102,35 +166,26 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
         clt_percent : bool, default=True
             is cloud fraction from base and pert in percent (True) or 0-1 scale
             (False)
+        rsdt_threshold : float, default=0.1
+            Set TOA downwelling radiation to zero below a certain threshold (W m**-2).
+            A small positive value here brings the sum of APRP components slightly
+            closer to the net forcing.
 
     Returns
     -------
-        central[, forward, reverse] : dict of array_like
-            Components of APRP as defined by equation A2 of [1]_.
-
-            dict keys are 't1', 't2', ..., 't9' where tX is the corresponding term in
-            eq. A2.
-
-            't2_clr' and 't3_clr' are also provided, being hypothetical clear sky values
-            of t2 and t3.
-
-            Result dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
-
-            ERFariSW = t2 + t3 + t5 + t6
-            ERFaciSW = t7 + t8 + t9
-            albedo = t1 + t4
-            ERFari_SWclr = t2_clr + t3_clr
-
-            though note these only make sense if you are calculating aerosol forcing.
-            The cloud fraction adjustment component of ERFaci is t9.
-
-            if longwave is True, central also contains 'ERFariLW' and 'ERFaciLW' as
-            calculated from the cloud radiative effect.
-
-    Notes
-    -----
-    This implementation is a little different to Mark Zelinka's version at
-    https://github.com/mzelinka/aprp.
+        results : dict of np.ndarray
+            Components of APRP as defined by equation A2 of [1]_:
+                "albedo"
+                "noncloud_scat"
+                "noncloud_abs"
+                "cloud_scat"
+                "cloud_abs"
+                "cloud_amount"
+                "ERFariSW" = "noncloud_scat" + "noncloud_abs"
+                "ERFaciSW" = "cloud_scat" + "cloud_abs" + "cloud_amount"
+            if `longwave`=`True`, the following are also calculated from the LW fluxes:
+                "ERFariLW"
+                "ERFaciLW"
 
     References
     ----------
@@ -188,329 +243,67 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     # we might want to flag these after all and give user the option to disable
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        base["rsutoc"] = (base["rsut"] - (1 - base["clt"]) * (base["rsutcs"])) / base[
-            "clt"
-        ]
-        pert["rsutoc"] = (pert["rsut"] - (1 - pert["clt"]) * (pert["rsutcs"])) / pert[
-            "clt"
-        ]
-        base["rsutoc"][~np.isfinite(base["rsutoc"])] = pert["rsutoc"][
-            ~np.isfinite(base["rsutoc"])
-        ]
-        pert["rsutoc"][~np.isfinite(pert["rsutoc"])] = base["rsutoc"][
-            ~np.isfinite(pert["rsutoc"])
-        ]
-        base["rsutoc"][~np.isfinite(base["rsutoc"])] = base["rsutcs"][
-            ~np.isfinite(base["rsutoc"])
-        ]
-        pert["rsutoc"][~np.isfinite(pert["rsutoc"])] = pert["rsutcs"][
-            ~np.isfinite(pert["rsutoc"])
-        ]
-        rsutoc = 0.5 * (pert["rsutoc"] + base["rsutoc"])
-        rsutcs = 0.5 * (pert["rsutcs"] + base["rsutcs"])
-        delta_clt = pert["clt"] - base["clt"]
-        clt = 0.5 * (pert["clt"] + base["clt"])
+        base = _calculate_overcast_terms(base)
+        pert = _calculate_overcast_terms(pert)
 
-        base["rsusoc"] = (base["rsus"] - (1 - base["clt"]) * (base["rsuscs"])) / base[
-            "clt"
-        ]
-        pert["rsusoc"] = (pert["rsus"] - (1 - pert["clt"]) * (pert["rsuscs"])) / pert[
-            "clt"
-        ]
-        base["rsusoc"][~np.isfinite(base["rsusoc"])] = pert["rsusoc"][
-            ~np.isfinite(base["rsusoc"])
-        ]
-        pert["rsusoc"][~np.isfinite(pert["rsusoc"])] = base["rsusoc"][
-            ~np.isfinite(pert["rsusoc"])
-        ]
-        base["rsusoc"][~np.isfinite(base["rsusoc"])] = base["rsuscs"][
-            ~np.isfinite(base["rsusoc"])
-        ]
-        pert["rsusoc"][~np.isfinite(pert["rsusoc"])] = pert["rsuscs"][
-            ~np.isfinite(pert["rsusoc"])
-        ]
+    base_params = _calculate_parameters(base)
+    pert_params = _calculate_parameters(pert)
 
-        base["rsdsoc"] = (base["rsds"] - (1 - base["clt"]) * (base["rsdscs"])) / base[
-            "clt"
-        ]
-        pert["rsdsoc"] = (pert["rsds"] - (1 - pert["clt"]) * (pert["rsdscs"])) / pert[
-            "clt"
-        ]
-        base["rsdsoc"][~np.isfinite(base["rsdsoc"])] = pert["rsdsoc"][
-            ~np.isfinite(base["rsdsoc"])
-        ]
-        pert["rsdsoc"][~np.isfinite(pert["rsdsoc"])] = base["rsdsoc"][
-            ~np.isfinite(pert["rsdsoc"])
-        ]
-        base["rsdsoc"][~np.isfinite(base["rsdsoc"])] = base["rsdscs"][
-            ~np.isfinite(base["rsdsoc"])
-        ]
-        pert["rsdsoc"][~np.isfinite(pert["rsdsoc"])] = pert["rsdscs"][
-            ~np.isfinite(pert["rsdsoc"])
-        ]
+    base_albedo = _planetary_albedo(**base_params)
+    pert_albedo = _planetary_albedo(**pert_params)
 
-        a_oc_base = base["rsutoc"] / base["rsdt"]
-        a_oc_base[~np.isfinite(a_oc_base)] = 0.0  # this is safe
-        alpha_oc_base = base["rsusoc"] / base["rsdsoc"]
-        alpha_oc_base[~np.isfinite(alpha_oc_base)] = 0.0
-        q_oc_down_base = base["rsdsoc"] / base["rsdt"]
-        q_oc_down_base[~np.isfinite(q_oc_down_base)] = 0.0
-        mu_oc_base = a_oc_base + q_oc_down_base * (1 - alpha_oc_base)
-        gamma_oc_base = (mu_oc_base - q_oc_down_base) / (
-            mu_oc_base - alpha_oc_base * q_oc_down_base
-        )
-        gamma_oc_base[~np.isfinite(gamma_oc_base)] = 0.0
-
-        a_oc_pert = pert["rsutoc"] / pert["rsdt"]
-        a_oc_pert[~np.isfinite(a_oc_pert)] = 0.0
-        alpha_oc_pert = pert["rsusoc"] / pert["rsdsoc"]
-        alpha_oc_pert[~np.isfinite(alpha_oc_pert)] = 0.0
-        q_oc_down_pert = pert["rsdsoc"] / pert["rsdt"]
-        q_oc_down_pert[~np.isfinite(q_oc_down_pert)] = 0.0
-        mu_oc_pert = a_oc_pert + q_oc_down_pert * (1 - alpha_oc_pert)
-        gamma_oc_pert = (mu_oc_pert - q_oc_down_pert) / (
-            mu_oc_pert - alpha_oc_pert * q_oc_down_pert
-        )
-        gamma_oc_pert[~np.isfinite(gamma_oc_pert)] = 0.0
-
-        a_cs_base = base["rsutcs"] / base["rsdt"]
-        a_cs_base[~np.isfinite(a_cs_base)] = 0.0
-        alpha_cs_base = base["rsuscs"] / base["rsdscs"]
-        alpha_cs_base[~np.isfinite(alpha_cs_base)] = 0.0
-        q_cs_down_base = base["rsdscs"] / base["rsdt"]
-        q_cs_down_base[~np.isfinite(q_cs_down_base)] = 0.0
-        mu_cs_base = a_cs_base + q_cs_down_base * (1 - alpha_cs_base)
-        gamma_cs_base = (mu_cs_base - q_cs_down_base) / (
-            mu_cs_base - alpha_cs_base * q_cs_down_base
-        )
-        gamma_cs_base[~np.isfinite(gamma_cs_base)] = 0.0
-
-        a_cs_pert = pert["rsutcs"] / pert["rsdt"]
-        a_cs_pert[~np.isfinite(a_cs_pert)] = 0.0
-        alpha_cs_pert = pert["rsuscs"] / pert["rsdscs"]
-        alpha_cs_pert[~np.isfinite(alpha_cs_pert)] = 0.0
-        q_cs_down_pert = pert["rsdscs"] / pert["rsdt"]
-        q_cs_down_pert[~np.isfinite(q_cs_down_pert)] = 0.0
-        mu_cs_pert = a_cs_pert + q_cs_down_pert * (1 - alpha_cs_pert)
-        gamma_cs_pert = (mu_cs_pert - q_cs_down_pert) / (
-            mu_cs_pert - alpha_cs_pert * q_cs_down_pert
-        )
-        gamma_cs_pert[~np.isfinite(gamma_cs_pert)] = 0.0
-
-        # Calculate cloudy values of gamma and mu
-        gamma_pert = 1 - (1 - gamma_oc_pert) / (1 - gamma_cs_pert)
-        mu_pert = (mu_oc_pert) / mu_cs_pert
-        mu_pert[~np.isfinite(mu_pert)] = 0.0
-        gamma_base = 1 - (1 - gamma_oc_base) / (1 - gamma_cs_base)
-        mu_base = (mu_oc_base) / mu_cs_base
-        mu_base[~np.isfinite(mu_base)] = 0.0
-
-    daoc_dacld = 0.5 * (
-        (
-            _planetary_albedo(mu_oc_base, gamma_oc_base, alpha_oc_pert)
-            - _planetary_albedo(mu_oc_base, gamma_oc_base, alpha_oc_base)
-        )
-        + (
-            _planetary_albedo(mu_oc_pert, gamma_oc_pert, alpha_oc_pert)
-            - (_planetary_albedo(mu_oc_pert, gamma_oc_pert, alpha_oc_base))
-        )
-    )
-    daoc_dmcld = 0.5 * (
-        (
-            _planetary_albedo(mu_pert, gamma_base, alpha_oc_base)
-            - _planetary_albedo(mu_base, gamma_base, alpha_oc_base)
-        )
-        + (
-            _planetary_albedo(mu_pert, gamma_pert, alpha_oc_pert)
-            - (_planetary_albedo(mu_base, gamma_pert, alpha_oc_pert))
-        )
-    )
-    daoc_dgcld = 0.5 * (
-        (
-            _planetary_albedo(mu_base, gamma_pert, alpha_oc_base)
-            - _planetary_albedo(mu_base, gamma_base, alpha_oc_base)
-        )
-        + (
-            _planetary_albedo(mu_pert, gamma_pert, alpha_oc_pert)
-            - (_planetary_albedo(mu_pert, gamma_base, alpha_oc_pert))
-        )
-    )
-
-    daoc_dmaer = 0.5 * (
-        (
-            _planetary_albedo(mu_cs_pert, gamma_oc_base, alpha_oc_base)
-            - _planetary_albedo(mu_cs_base, gamma_oc_base, alpha_oc_base)
-        )
-        + (
-            _planetary_albedo(mu_cs_pert, gamma_oc_pert, alpha_oc_pert)
-            - (_planetary_albedo(mu_cs_base, gamma_oc_pert, alpha_oc_pert))
-        )
-    )
-    daoc_dgaer = 0.5 * (
-        (
-            _planetary_albedo(mu_oc_base, gamma_cs_pert, alpha_oc_base)
-            - _planetary_albedo(mu_oc_base, gamma_cs_base, alpha_oc_base)
-        )
-        + (
-            _planetary_albedo(mu_oc_pert, gamma_cs_pert, alpha_oc_pert)
-            - (_planetary_albedo(mu_oc_pert, gamma_cs_base, alpha_oc_pert))
-        )
-    )
-
-    dacs_daclr = 0.5 * (
-        (
-            _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_pert)
-            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
-        )
-        + (
-            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_base))
-        )
-    )
-    dacs_dmaer = 0.5 * (
-        (
-            _planetary_albedo(mu_cs_pert, gamma_cs_base, alpha_cs_base)
-            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
-        )
-        + (
-            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_planetary_albedo(mu_cs_base, gamma_cs_pert, alpha_cs_pert))
-        )
-    )
-    dacs_dgaer = 0.5 * (
-        (
-            _planetary_albedo(mu_cs_base, gamma_cs_pert, alpha_cs_base)
-            - _planetary_albedo(mu_cs_base, gamma_cs_base, alpha_cs_base)
-        )
-        + (
-            _planetary_albedo(mu_cs_pert, gamma_cs_pert, alpha_cs_pert)
-            - (_planetary_albedo(mu_cs_pert, gamma_cs_base, alpha_cs_pert))
-        )
-    )
-
-    base["rsnt"] = base["rsdt"] - base["rsut"]
-    base["rsntcs"] = base["rsdt"] - base["rsutcs"]
-    pert["rsnt"] = pert["rsdt"] - pert["rsut"]
-    pert["rsntcs"] = pert["rsdt"] - pert["rsutcs"]
-    pert["rsntoc"] = pert["rsdt"] - pert["rsutoc"]
-    base["rsntoc"] = base["rsdt"] - base["rsutoc"]
-
-    # t1 to t9 are the coefficients of equation A2 in Zelinka et al., 2014
+    # forward
     forward = {}
+    for subs in base_params:
+        in_params = copy.deepcopy(base_params)
+        in_params[subs] = pert_params[subs]
+        forward[subs] = _planetary_albedo(**in_params) - base_albedo
+
+    # backward, and central as mean of forward and backward
     reverse = {}
     central = {}
-    forward["t1"] = -base["rsntcs"] * (1 - clt) * dacs_daclr
-    forward["t2"] = -base["rsntcs"] * (1 - clt) * dacs_dgaer
-    forward["t3"] = -base["rsntcs"] * (1 - clt) * dacs_dmaer
-    forward["t4"] = -base["rsnt"] * clt * (daoc_dacld)
-    forward["t5"] = -base["rsnt"] * clt * (daoc_dgaer)
-    forward["t6"] = -base["rsnt"] * clt * (daoc_dmaer)
-    forward["t7"] = -base["rsnt"] * clt * (daoc_dgcld)
-    forward["t8"] = -base["rsnt"] * clt * (daoc_dmcld)
-    forward["t9"] = -delta_clt * (rsutoc - rsutcs)
-    forward["t2_clr"] = -base["rsntcs"] * dacs_dgaer
-    forward["t3_clr"] = -base["rsntcs"] * dacs_dmaer
+    for subs in pert_params:
+        in_params = copy.deepcopy(pert_params)
+        in_params[subs] = base_params[subs]
+        reverse[subs] = pert_albedo - _planetary_albedo(**in_params)
+        central[subs] = 0.5 * (forward[subs] + reverse[subs])
 
-    # set thresholds
-    # TODO: can we avoid a hard cloud fraction threshold here?
-    forward["t4"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t4"],
-    )
-    forward["t5"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t5"],
-    )
-    forward["t6"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t6"],
-    )
-    forward["t7"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t7"],
-    )
-    forward["t8"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t8"],
-    )
-    forward["t9"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t9"],
-    )
+    for var in ["clt", "alpha_oc", "mu", "gamma"]:
+        central[var] = np.where(
+            np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
+            0.0,
+            central[var],
+        )
 
-    forward["ERFariSWclr"] = forward["t2_clr"] + forward["t3_clr"]
-    forward["ERFariSW"] = forward["t2"] + forward["t3"] + forward["t5"] + forward["t6"]
-    forward["ERFaciSW"] = forward["t7"] + forward["t8"] + forward["t9"]
-    forward["albedo"] = forward["t1"] + forward["t4"]
+    rsdt = 0.5 * (base["rsdt"] + pert["rsdt"])
 
-    reverse["t1"] = -pert["rsntcs"] * (1 - clt) * dacs_daclr
-    reverse["t2"] = -pert["rsntcs"] * (1 - clt) * dacs_dgaer
-    reverse["t3"] = -pert["rsntcs"] * (1 - clt) * dacs_dmaer
-    reverse["t4"] = -pert["rsnt"] * clt * (daoc_dacld)
-    reverse["t5"] = -pert["rsnt"] * clt * (daoc_dgaer)
-    reverse["t6"] = -pert["rsnt"] * clt * (daoc_dmaer)
-    reverse["t7"] = -pert["rsnt"] * clt * (daoc_dgcld)
-    reverse["t8"] = -pert["rsnt"] * clt * (daoc_dmcld)
-    reverse["t9"] = -delta_clt * (rsutoc - rsutcs)
-    reverse["t2_clr"] = -pert["rsntcs"] * dacs_dgaer
-    reverse["t3_clr"] = -pert["rsntcs"] * dacs_dmaer
+    results = {}
+    results["albedo"] = -(central["alpha_cs"] + central["alpha_oc"]) * rsdt
+    results["ERFari_scat"] = -central["gamma_cs"] * rsdt
+    results["ERFari_abs"] = -central["mu_cs"] * rsdt
+    results["ERFaci_scat"] = -central["gamma"] * rsdt
+    results["ERFaci_abs"] = -central["mu"] * rsdt
+    results["ERFaci_amt"] = -central["clt"] * rsdt
 
-    # set thresholds
-    reverse["t4"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t4"],
-    )
-    reverse["t5"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t5"],
-    )
-    reverse["t6"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t6"],
-    )
-    reverse["t7"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t7"],
-    )
-    reverse["t8"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t8"],
-    )
-    reverse["t9"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t9"],
-    )
+    for var in [
+        "albedo",
+        "ERFari_scat",
+        "ERFari_abs",
+        "ERFaci_scat",
+        "ERFaci_abs",
+        "ERFaci_amt",
+    ]:
+        results[var] = np.where(rsdt < rsdt_threshold, 0, results[var])
 
-    reverse["ERFariSWclr"] = reverse["t2_clr"] + reverse["t3_clr"]
-    reverse["ERFariSW"] = reverse["t2"] + reverse["t3"] + reverse["t5"] + reverse["t6"]
-    reverse["ERFaciSW"] = reverse["t7"] + reverse["t8"] + reverse["t9"]
-    reverse["albedo"] = reverse["t1"] + reverse["t4"]
-
-    for key, _ in forward.items():
-        central[key] = 0.5 * (forward[key] + reverse[key])
+    results["ERFariSW"] = results["ERFari_scat"] + results["ERFari_abs"]
+    results["ERFaciSW"] = (
+        results["ERFaci_scat"] + results["ERFaci_abs"] + results["ERFaci_amt"]
+    )
 
     if longwave:
-        central["ERFariLW"], central["ERFaciLW"] = cloud_radiative_effect(base, pert)
-        forward["ERFariLW"] = np.copy(central["ERFariLW"])
-        reverse["ERFariLW"] = np.copy(central["ERFariLW"])
-        forward["ERFaciLW"] = np.copy(central["ERFaciLW"])
-        reverse["ERFaciLW"] = np.copy(central["ERFaciLW"])
+        results["ERFariLW"], results["ERFaciLW"] = cloud_radiative_effect(base, pert)
 
-    if breakdown:
-        return central, forward, reverse
-    return central
+    return results
 
 
 def create_input(
