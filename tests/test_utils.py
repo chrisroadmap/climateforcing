@@ -13,18 +13,18 @@ def test_check_and_download():
     # checking both the operation of check_and_download and the capability to
     # make a new directory on the fly
     check_and_download(
-        "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
+        "https://docs.fairmodel.net/en/latest/_images/dimensions.png",
         "tests/newdirectory/test_image.png",
     )
     # clobber working?
     check_and_download(
-        "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
+        "https://docs.fairmodel.net/en/latest/_images/dimensions.png",
         "tests/newdirectory/test_image.png",
         clobber=True,
     )
     # directory specification working?
     check_and_download(
-        "http://homepages.see.leeds.ac.uk/~mencsm/images/ta_q_kernel.png",
+        "https://docs.fairmodel.net/en/latest/_images/dimensions.png",
         "tests/newdirectory",
         clobber=True,
     )
