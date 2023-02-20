@@ -245,10 +245,8 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
         warnings.simplefilter("ignore")
         base = _calculate_overcast_terms(base)
         pert = _calculate_overcast_terms(pert)
-
-    base_params = _calculate_parameters(base)
-    pert_params = _calculate_parameters(pert)
-
+        base_params = _calculate_parameters(base)
+        pert_params = _calculate_parameters(pert)
     base_albedo = _planetary_albedo(**base_params)
     pert_albedo = _planetary_albedo(**pert_params)
 
