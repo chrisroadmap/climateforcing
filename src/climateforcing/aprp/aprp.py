@@ -50,7 +50,12 @@ def cloud_radiative_effect(base, pert):
 
 
 def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements  # noqa: E501
-    base, pert, longwave=False, breakdown=False, cs_threshold=0.02, clt_percent=True,
+    base,
+    pert,
+    longwave=False,
+    breakdown=False,
+    cs_threshold=0.02,
+    clt_percent=True,
 ):
     """Approximate Partial Raditive Perturbation calculation.
 
