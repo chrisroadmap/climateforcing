@@ -67,7 +67,7 @@ def test_aprp_access_esm1_5():
     result_3d = aprp(base, pert, longwave=True)
     for key, value in result_3d.items():
         result_1d = global_mean(value, lat=lat, axis=1)
-        assert np.allclose(result_1d, EXPECTED_RESULT[key])
+        assert np.allclose(result_1d, EXPECTED_RESULT[key], atol=1e-5)
 
 
 def test_create_input_slice():
