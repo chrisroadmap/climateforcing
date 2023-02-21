@@ -50,7 +50,7 @@ def _calculate_overcast_terms(params):
 def _calculate_parameters(input_params):
     output_params = {}
 
-    output_params["clt"] = input_params["clt"]
+    output_params["clt"] = copy.deepcopy(input_params["clt"])
 
     # clear sky parameters
     output_params["alpha_cs"] = (
@@ -235,18 +235,23 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
                     f"differs in shape to rsdt {var_dict['rsdt'].shape}"
                 )
 
-        # rescale cloud fraction to 0-1 if necessary
-        if clt_percent:
-            var_dict["clt"] = var_dict["clt"] / 100
+    # prevent mutating original data
+    base_work = copy.deepcopy(base)
+    pert_work = copy.deepcopy(pert)
+
+    # rescale cloud fraction to 0-1 if necessary
+    if clt_percent:
+        base_work["clt"] = base_work["clt"] / 100
+        pert_work["clt"] = pert_work["clt"] / 100
 
     # the catch_warnings stops divide by zeros being flagged
     # we might want to flag these after all and give user the option to disable
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        base = _calculate_overcast_terms(base)
-        pert = _calculate_overcast_terms(pert)
-        base_params = _calculate_parameters(base)
-        pert_params = _calculate_parameters(pert)
+        base_work = _calculate_overcast_terms(base_work)
+        pert_work = _calculate_overcast_terms(pert_work)
+        base_params = _calculate_parameters(base_work)
+        pert_params = _calculate_parameters(pert_work)
     base_albedo = _planetary_albedo(**base_params)
     pert_albedo = _planetary_albedo(**pert_params)
 
@@ -268,12 +273,14 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
 
     for var in ["clt", "alpha_oc", "mu", "gamma"]:
         central[var] = np.where(
-            np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
+            np.logical_or(
+                base_work["clt"] < cs_threshold, pert_work["clt"] < cs_threshold
+            ),
             0.0,
             central[var],
         )
 
-    rsdt = 0.5 * (base["rsdt"] + pert["rsdt"])
+    rsdt = 0.5 * (base_work["rsdt"] + pert_work["rsdt"])
 
     results = {}
     results["albedo"] = -(central["alpha_cs"] + central["alpha_oc"]) * rsdt
@@ -299,7 +306,9 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     )
 
     if longwave:
-        results["ERFariLW"], results["ERFaciLW"] = cloud_radiative_effect(base, pert)
+        results["ERFariLW"], results["ERFaciLW"] = cloud_radiative_effect(
+            base_work, pert_work
+        )
 
     return results
 
