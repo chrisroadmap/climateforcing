@@ -57,12 +57,13 @@ def cloud_radiative_effect(base, pert):
     return erfari_lw, erfaci_lw
 
 
-def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements  # noqa: E501
+def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements,too-many-branches  # noqa: E501
     base,
     pert,
     longwave=False,
     breakdown=False,
     cs_threshold=0.02,
+    rsdt_threshold=0.1,
     clt_percent=True,
 ):
     """Approximate Partial Raditive Perturbation calculation.
@@ -71,13 +72,16 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     and scattering components. When used with aerosol forcing, it can be used to
     separate the effective radiative forcing into aerosol-radiation (ERFari) and
     aerosol-cloud (ERFaci) components.
+
     Parameters
     ----------
         base, pert : dict of array_like
             Baseline and perturbation climate states to use.
+
             Both `base` and `pert` are dicts containing CMIP-style variables. CMIP
             variable naming conventions are used. The dicts should contain the
             following keys:
+
             rsdt    : TOA incoming shortwave flux (W m-2)
             rsus    : surface upwelling shortwave flux (W m-2)
             rsds    : surface downwelling_shortwave flux (W m-2)
@@ -86,10 +90,13 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
             rsuscs  : surface upwelling shortwave flux assuming clear sky (W m-2)
             rsut    : TOA outgoing shortwave flux (W m-2)
             rsutcs  : TOA outgoing shortwave flux assuming clear sky (W m-2)
+
             If the longwave calculation is also required, the following keys should
             also be included:
+
             rlut    : TOA outgoing longwave flux (W m-2)
             rlutcs  : TOA outgoing longwave flux assuming clear sky (W m-2)
+
         longwave : bool, default=True
             calculate the longwave forcing, in addition to the shortwave.
         breakdown : bool, default=False
@@ -101,22 +108,31 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
             flux to zero. It is recommended to use a small positive value, as the
             cloud fraction appears in the denominator of the calculation. Taken from
             Mark Zelinka's implementation.
+        rsdt_threshold : float, default=0.1
+            set incoming radiation to zero below a certain level. A small positive value
+            is recommended to reduce residuals of the SW component compared to TOA ERF.
         clt_percent : bool, default=True
             is cloud fraction from base and pert in percent (True) or 0-1 scale
             (False)
+
     Returns
     -------
         central[, forward, reverse] : dict of array_like
+
             Components of APRP as defined by equation A2 of [1]_.
             dict keys are 't1', 't2', ..., 't9' where tX is the corresponding term in
             eq. A2.
+
             't2_clr' and 't3_clr' are also provided, being hypothetical clear sky values
             of t2 and t3.
+
             Result dict(s) also contain 'ERFariSW', 'ERFaciSW' and 'albedo' where
+
             ERFariSW = t2 + t3 + t5 + t6
             ERFaciSW = t7 + t8 + t9
             albedo = t1 + t4
             ERFari_SWclr = t2_clr + t3_clr
+
             though note these only make sense if you are calculating aerosol forcing.
             The cloud fraction adjustment component of ERFaci is t9.
             if longwave is True, central also contains 'ERFariLW' and 'ERFaciLW' as
@@ -133,6 +149,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
     Quantifying components of aerosol‐cloud‐radiation interactions in climate
     models, J. Geophys. Res. Atmos., 119, 7599– 7615,
     https://doi.org/10.1002/2014JD021710.
+
     .. [2] Taylor, K. E., Crucifix, M., Braconnot, P., Hewitt, C. D., Doutriaux, C.,
     Broccoli, A. J., Mitchell, J. F. B., & Webb, M. J. (2007). Estimating Shortwave
     Radiative Forcing and Response in Climate Models, Journal of Climate, 20(11),
@@ -203,6 +220,7 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
         rsutoc = 0.5 * (pert["rsutoc"] + base["rsutoc"])
         rsutcs = 0.5 * (pert["rsutcs"] + base["rsutcs"])
         delta_clt = pert["clt"] - base["clt"]
+        rsdt = 0.5 * (base["rsdt"] + pert["rsdt"])
 
         base["rsusoc"] = (base["rsus"] - (1 - base["clt"]) * (base["rsuscs"])) / base[
             "clt"
@@ -364,110 +382,71 @@ def aprp(  # pylint: disable=too-many-arguments,too-many-locals,too-many-stateme
         mu_oc_pert, new_gamma_oc_base, alpha_oc_pert
     )
 
-    base["rsnt"] = base["rsdt"]  # - base["rsut"]
-    base["rsntcs"] = base["rsdt"]  # - base["rsutcs"]
-    pert["rsnt"] = pert["rsdt"]  # - pert["rsut"]
-    pert["rsntcs"] = pert["rsdt"]  # - pert["rsutcs"]
-    pert["rsntoc"] = pert["rsdt"]  # - pert["rsutoc"]
-    base["rsntoc"] = base["rsdt"]  # - base["rsutoc"]
-
     # t1 to t9 are the coefficients of equation A2 in Zelinka et al., 2014
     forward = {}
     reverse = {}
     central = {}
-    forward["t1"] = -base["rsntcs"] * (1 - base["clt"]) * dacs_daclr_fwd
-    forward["t2"] = -base["rsntcs"] * (1 - base["clt"]) * dacs_dgaer_fwd
-    forward["t3"] = -base["rsntcs"] * (1 - base["clt"]) * dacs_dmaer_fwd
-    forward["t4"] = -base["rsnt"] * base["clt"] * (daoc_dacld_fwd)
-    forward["t5"] = -base["rsnt"] * base["clt"] * (daoc_dgaer_fwd)
-    forward["t6"] = -base["rsnt"] * base["clt"] * (daoc_dmaer_fwd)
-    forward["t7"] = -base["rsnt"] * base["clt"] * (daoc_dgcld_fwd)
-    forward["t8"] = -base["rsnt"] * base["clt"] * (daoc_dmcld_fwd)
+    forward["t1"] = -base["rsdt"] * (1 - base["clt"]) * dacs_daclr_fwd
+    forward["t2"] = -base["rsdt"] * (1 - base["clt"]) * dacs_dgaer_fwd
+    forward["t3"] = -base["rsdt"] * (1 - base["clt"]) * dacs_dmaer_fwd
+    forward["t4"] = -base["rsdt"] * base["clt"] * (daoc_dacld_fwd)
+    forward["t5"] = -base["rsdt"] * base["clt"] * (daoc_dgaer_fwd)
+    forward["t6"] = -base["rsdt"] * base["clt"] * (daoc_dmaer_fwd)
+    forward["t7"] = -base["rsdt"] * base["clt"] * (daoc_dgcld_fwd)
+    forward["t8"] = -base["rsdt"] * base["clt"] * (daoc_dmcld_fwd)
     forward["t9"] = -delta_clt * (rsutoc - rsutcs)
-    forward["t2_clr"] = -base["rsntcs"] * dacs_dgaer_fwd
-    forward["t3_clr"] = -base["rsntcs"] * dacs_dmaer_fwd
+    forward["t2_clr"] = -base["rsdt"] * dacs_dgaer_fwd
+    forward["t3_clr"] = -base["rsdt"] * dacs_dmaer_fwd
 
     # set thresholds
     # TODO: can we avoid a hard cloud fraction threshold here?
-    forward["t4"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t4"],
-    )
-    forward["t5"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t5"],
-    )
-    forward["t6"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t6"],
-    )
-    forward["t7"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t7"],
-    )
-    forward["t8"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t8"],
-    )
-    forward["t9"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        forward["t9"],
-    )
+    for term in ["t4", "t5", "t6", "t7", "t8", "t9"]:
+        forward[term] = np.where(
+            np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
+            0.0,
+            forward[term],
+        )
+
+    # set fields to zero when incoming solar radiation is zero
+    for term in ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]:
+        forward[term] = np.where(
+            rsdt < rsdt_threshold,
+            0.0,
+            forward[term],
+        )
 
     forward["ERFariSWclr"] = forward["t2_clr"] + forward["t3_clr"]
     forward["ERFariSW"] = forward["t2"] + forward["t3"] + forward["t5"] + forward["t6"]
     forward["ERFaciSW"] = forward["t7"] + forward["t8"] + forward["t9"]
     forward["albedo"] = forward["t1"] + forward["t4"]
 
-    reverse["t1"] = -pert["rsntcs"] * (1 - pert["clt"]) * dacs_daclr_bwd
-    reverse["t2"] = -pert["rsntcs"] * (1 - pert["clt"]) * dacs_dgaer_bwd
-    reverse["t3"] = -pert["rsntcs"] * (1 - pert["clt"]) * dacs_dmaer_bwd
-    reverse["t4"] = -pert["rsnt"] * pert["clt"] * (daoc_dacld_bwd)
-    reverse["t5"] = -pert["rsnt"] * pert["clt"] * (daoc_dgaer_bwd)
-    reverse["t6"] = -pert["rsnt"] * pert["clt"] * (daoc_dmaer_bwd)
-    reverse["t7"] = -pert["rsnt"] * pert["clt"] * (daoc_dgcld_bwd)
-    reverse["t8"] = -pert["rsnt"] * pert["clt"] * (daoc_dmcld_bwd)
+    reverse["t1"] = -pert["rsdt"] * (1 - pert["clt"]) * dacs_daclr_bwd
+    reverse["t2"] = -pert["rsdt"] * (1 - pert["clt"]) * dacs_dgaer_bwd
+    reverse["t3"] = -pert["rsdt"] * (1 - pert["clt"]) * dacs_dmaer_bwd
+    reverse["t4"] = -pert["rsdt"] * pert["clt"] * (daoc_dacld_bwd)
+    reverse["t5"] = -pert["rsdt"] * pert["clt"] * (daoc_dgaer_bwd)
+    reverse["t6"] = -pert["rsdt"] * pert["clt"] * (daoc_dmaer_bwd)
+    reverse["t7"] = -pert["rsdt"] * pert["clt"] * (daoc_dgcld_bwd)
+    reverse["t8"] = -pert["rsdt"] * pert["clt"] * (daoc_dmcld_bwd)
     reverse["t9"] = -delta_clt * (rsutoc - rsutcs)
-    reverse["t2_clr"] = -pert["rsntcs"] * dacs_dgaer_bwd
-    reverse["t3_clr"] = -pert["rsntcs"] * dacs_dmaer_bwd
+    reverse["t2_clr"] = -pert["rsdt"] * dacs_dgaer_bwd
+    reverse["t3_clr"] = -pert["rsdt"] * dacs_dmaer_bwd
 
     # set thresholds
-    reverse["t4"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t4"],
-    )
-    reverse["t5"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t5"],
-    )
-    reverse["t6"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t6"],
-    )
-    reverse["t7"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t7"],
-    )
-    reverse["t8"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t8"],
-    )
-    reverse["t9"] = np.where(
-        np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
-        0.0,
-        reverse["t9"],
-    )
+    for term in ["t4", "t5", "t6", "t7", "t8", "t9"]:
+        reverse[term] = np.where(
+            np.logical_or(base["clt"] < cs_threshold, pert["clt"] < cs_threshold),
+            0.0,
+            reverse[term],
+        )
+
+    # set fields to zero when incoming solar radiation is zero
+    for term in ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]:
+        reverse[term] = np.where(
+            rsdt < rsdt_threshold,
+            0.0,
+            reverse[term],
+        )
 
     reverse["ERFariSWclr"] = reverse["t2_clr"] + reverse["t3_clr"]
     reverse["ERFariSW"] = reverse["t2"] + reverse["t3"] + reverse["t5"] + reverse["t6"]
