@@ -50,16 +50,23 @@ def test_aprp_access_esm1_5():
     # these values are not expected to be realistic global means as our test data is
     # a small area in the tropics
     EXPECTED_RESULT = {
-        "albedo": -0.004681652319370494,
-        "ERFari_scat": -0.4433192884978622,
-        "ERFari_abs": 0.40955245497308285,
-        "ERFaci_scat": -1.7441234051275887,
-        "ERFaci_abs": 0.14376985338862716,
-        "ERFaci_amt": 2.012463079695719,
-        "ERFariSW": -0.0337668276752567,
-        "ERFaciSW": 0.41210950703083343,
+        "albedo": -0.004681121779074323,
+        "ERFariSW": -0.0337658957581616,
+        "ERFaciSW": 0.4121098817036564,
         "ERFariLW": -0.8487686048639489,
         "ERFaciLW": -3.321506047334925,
+        "t1": 0.017574093155832592,
+        "t2": -0.12323665520968012,
+        "t3": 0.041323059475741955,
+        "t4": -0.02225521556606039,
+        "t5": -0.32008254859568436,
+        "t6": 0.3682302585091456,
+        "t7": -1.7441234148989013,
+        "t8": 0.14377014708168268,
+        "t9": 2.0124631258387526,
+        "t2_clr": -0.6718520381414649,
+        "t3_clr": 0.16847785214017594,
+        "ERFariSWclr": -0.5033741958574206,
     }
     BASEDIR = "tests/testdata/ACCESS-ESM1-5/piClim-control/"
     PERTDIR = "tests/testdata/ACCESS-ESM1-5/piClim-aer/"
