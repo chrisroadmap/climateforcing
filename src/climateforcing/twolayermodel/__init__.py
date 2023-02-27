@@ -378,10 +378,10 @@ class TwoLayer:  # pylint: disable=too-few-public-methods,too-many-instance-attr
                 "adeep_s": adeep_s,
             }
         )
-        for k in self.params.keys():
-            if self.params[k] is None:
-                if k in self.default:
-                    self.params[k] = self.default[k]
+        for key, value in self.params.items():
+            if value is None:
+                if key in self.default:
+                    self.params[key] = self.default[key]
         self.afast = afast
         self.aslow = aslow
         self.amix_f = amix_f

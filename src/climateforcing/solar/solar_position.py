@@ -95,7 +95,7 @@ def _term_sum(julian_date, coefficient_set):
                 + coefficient_set[icoeff][:, 2] * julian_millenium
             )
         )
-        result = result + 1e-8 * coeff * julian_millenium ** icoeff
+        result = result + 1e-8 * coeff * julian_millenium**icoeff
     return result
 
 
@@ -163,15 +163,15 @@ def _true_obliquity_of_ecliptic(julian_date):
     mean_obliquity = (
         84381.448
         - 4680.93 * julian_10ka
-        - 1.55 * julian_10ka ** 2
-        + 1999.25 * julian_10ka ** 3
-        - 51.38 * julian_10ka ** 4
-        - 249.67 * julian_10ka ** 5
-        - 39.05 * julian_10ka ** 6
-        + 7.12 * julian_10ka ** 7
-        + 27.87 * julian_10ka ** 8
-        + 5.79 * julian_10ka ** 9
-        + 2.45 * julian_10ka ** 10
+        - 1.55 * julian_10ka**2
+        + 1999.25 * julian_10ka**3
+        - 51.38 * julian_10ka**4
+        - 249.67 * julian_10ka**5
+        - 39.05 * julian_10ka**6
+        + 7.12 * julian_10ka**7
+        + 27.87 * julian_10ka**8
+        + 5.79 * julian_10ka**9
+        + 2.45 * julian_10ka**10
     ) / 3600
     _, nutation_obliquity = _nutation(julian_date)
     return mean_obliquity + nutation_obliquity

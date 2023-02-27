@@ -50,23 +50,23 @@ def test_aprp_access_esm1_5():
     # these values are not expected to be realistic global means as our test data is
     # a small area in the tropics
     EXPECTED_RESULT = {
-        "t1": 0.015690050209499505,
-        "t2": -0.11169482070528963,
-        "t3": 0.03628321688570137,
-        "t4": -0.016643288519753274,
-        "t5": -0.3646235907233642,
-        "t6": 0.2702892397012102,
-        "t7": -1.7754625968973907,
-        "t8": 0.11863184693029566,
+        "albedo": -0.004681121779074323,
+        "ERFariSW": -0.0337658957581616,
+        "ERFaciSW": 0.4121098817036564,
+        "ERFariLW": -0.8487686048639489,
+        "ERFaciLW": -3.321506047334925,
+        "t1": 0.017574093155832592,
+        "t2": -0.12323665520968012,
+        "t3": 0.041323059475741955,
+        "t4": -0.02225521556606039,
+        "t5": -0.32008254859568436,
+        "t6": 0.3682302585091456,
+        "t7": -1.7441234148989013,
+        "t8": 0.14377014708168268,
         "t9": 2.0124631258387526,
-        "t2_clr": -0.6004451771086404,
-        "t3_clr": 0.14946570231037004,
-        "ERFariSWclr": -0.45097949302816626,
-        "ERFariSW": -0.16974595857509908,
-        "ERFaciSW": 0.35563230710202826,
-        "albedo": -0.0009532384845432344,
-        "ERFariLW": -0.8487686048639488,
-        "ERFaciLW": -3.3215060473349243,
+        "t2_clr": -0.6718520381414649,
+        "t3_clr": 0.16847785214017594,
+        "ERFariSWclr": -0.5033741958574206,
     }
     BASEDIR = "tests/testdata/ACCESS-ESM1-5/piClim-control/"
     PERTDIR = "tests/testdata/ACCESS-ESM1-5/piClim-aer/"
@@ -74,13 +74,7 @@ def test_aprp_access_esm1_5():
     result_3d = aprp(base, pert, longwave=True)
     for key, value in result_3d.items():
         result_1d = global_mean(value, lat=lat, axis=1)
-        assert np.allclose(result_1d, EXPECTED_RESULT[key])
-    # should use conftest and this should be a separate test
-    central, forward, reverse = aprp(base, pert, longwave=True, breakdown=True)
-    for key in central:
-        assert ~np.allclose(central[key], forward[key])
-        assert ~np.allclose(forward[key], reverse[key])
-        assert ~np.allclose(reverse[key], central[key])
+        assert np.allclose(result_1d, EXPECTED_RESULT[key], atol=1e-5)
 
 
 def test_create_input_slice():

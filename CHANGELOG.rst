@@ -13,6 +13,11 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 master
 ------
 
+v0.3.0
+------
+- fixed: `aprp` was slightly off and has been corrected (`#33 <https://github.com/chrisroadmap/climateforcing/pull/33>`_)
+- changed: support for python 3.6 dropped, support for python 3.10 and 3.11 added
+
 v0.2.3
 ------
 - added: option to specify directory in the path of `check_and_download` and to automatically create a new directory if it doesn't exist (`#30 <https://github.com/chrisroadmap/climateforcing/pull/30>`_)

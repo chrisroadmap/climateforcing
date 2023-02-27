@@ -25,11 +25,11 @@ REQUIREMENTS_DOCS = ["sphinx>=1.4", "sphinx_rtd_theme"]
 
 REQUIREMENTS_DEV = [
     *[
-        "black==19.10b0",
+        "black",
         "flake8",
-        "isort>5",
+        "isort",
         "pydocstyle",
-        "pylint>=2.4.4",
+        "pylint",
         "readme-renderer",
     ],
     *REQUIREMENTS_DEPLOY,
@@ -67,10 +67,11 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     keywords=["climate", "tools"],
     packages=PACKAGES,
