@@ -12,6 +12,7 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+- fixed: `conda` support for python 3.10 and 3.11; 3.6 removed
 
 v0.3.0
 ------
