@@ -19,7 +19,6 @@ requirements:
   run:
     - python
     - cftime>=1.4.0
-    - h5py
     - numpy
     - netCDF4
     - pandas
