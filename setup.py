@@ -13,7 +13,7 @@ README = "README.rst"
 
 SOURCE_DIR = "src"
 
-REQUIREMENTS = ["cftime>=1.4.0", "numpy", "netCDF4", "pandas", "scipy", "tqdm"]
+REQUIREMENTS = ["cftime>=1.4.0", "h5py", "numpy", "netCDF4", "pandas", "scipy", "tqdm"]
 REQUIREMENTS_TESTS = [
     "codecov",
     "coverage",
