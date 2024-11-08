@@ -26,7 +26,7 @@ perspective, you might be better with `pysolar`, specifically designed for solar
 energy use cases. If you want instantaneous zenith angles, you should probably use
 `pysolar`, but a function is included:
 
->>> cosz = cos_solar_zenith(jdate, latitude, longitude)
+>>> cosz = cos_solar_zenith_angle(jdate, latitude, longitude)
 
 Note further that these solar zenith angle calculations are not model-specific.
 Without access to individual climate model codes, it is impossible to know exactly how

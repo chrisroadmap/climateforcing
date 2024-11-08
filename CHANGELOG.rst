@@ -12,6 +12,7 @@ Following the recommendations of https://keepachangelog.com/en/1.0.0/
 
 master
 ------
+- fixed: docstring in solar pointed to the wrong function (`#36 <https://github.com/chrisroadmap/climateforcing/pull/36>`_)
 
 v0.3.0
 ------
